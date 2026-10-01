@@ -28,7 +28,7 @@ Claudio is a borderless AppKit window drawn entirely with Core Graphics, launche
 
 **The banner cannot be seen from inside a Claude session**: `screencapture` fails ("could not create image from display"). Verify with compile + launch + `pgrep`, then ask the user to look or to send a screenshot. Never claim something looks right without that.
 
-A quick way to show the user several variants in a row: write a caption to a file and launch `CLAUDIO_ITEM=<name> nohup build/claudio done <file> &`, then `sleep 5` between `pkill -x claudio` calls. The PostToolUse hook dismisses the last one when the Bash call ends.
+A quick way to show the user several variants in a row: write a caption to a file and launch `CLAUDIO_ITEM=<name> nohup build/claudio done <file> &`, then `sleep 5` between `pkill -x claudio` calls. A banner without a session id (manual launches, `make preview`) is not dismissed by hooks any more, only by a click or `dismiss.sh < /dev/null`.
 
 ## Coordinate systems (important when drawing)
 
@@ -77,8 +77,15 @@ A quick way to show the user several variants in a row: write a caption to a fil
 - Mascot on the left, bubble on the right, a compact size (`uiScale` 0.85).
 - Bubble: light gray, no border, black regular-weight left-aligned text, tail at the top left, decorative X circle half over the top edge near the right.
 - Pizza is held by the crust with the tip up.
-- 5-minute lifetime. It is dismissed by a click, a prompt submit, or PostToolUse.
+- 5-minute lifetime. It is dismissed by a click, or by a prompt submit or PostToolUse **in the same session**: `notify.sh` puts `session_id` in the phrase-file name (`claudio.<sid>.XXXXXX`), and `dismiss.sh` signals only `pkill -f "/claudio (done|ask) .*/claudio\.<sid>\."`. Without a session id in its payload it signals any banner.
 - Click = jump to the finished session and close; click on the X = close only (2026-10-01).
+- Several sessions: banners stack one under the other, oldest on top, and the rest glide up when one closes (user's choice, 2026-10-01). `notify.sh` replaces only the same session's banner (`pkill -f` on `claudio.<sid>.`), or the previous session-less one (`claudio.XXXXXX$`) for previews.
+
+## Stacking (`updateSlot` in MascotView.swift)
+
+- Every 0.25s a banner lists on-screen windows (`CGWindowListCopyWindowInfo`, no permission needed for owner and bounds) owned by processes with its own name, and counts those with a lower pid: that count is its slot. No shared files, and two banners starting together cannot pick the same slot.
+- `slotY` eases toward `slot * (height + 8)` each frame (factor 0.15); a new banner starts directly in its slot. Slots are capped at what fits on the screen; extra banners overlap in the last one.
+- Verified with three fake sessions: tops at 42 / 178 / 314 (136 = 127.5 + 8 apart), replace-own goes to the bottom, the others glide up after a dismiss.
 
 ## Jump to session (`scripts/focus.sh`)
 

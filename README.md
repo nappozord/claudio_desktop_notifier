@@ -8,8 +8,9 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 
 - **Done** (Claude finished): the mascot jumps happily and holds something celebratory.
 - **Ask** (Claude needs input or permission): the mascot shakes and holds something attention-grabbing.
+- **One banner per session**: when several sessions finish, their banners stack one under the other, oldest on top. When one closes, the ones below slide up. A session's new banner replaces its own previous one.
 - **Click to jump back**: clicking the mascot or the bubble brings the session that finished to the front, then closes the banner. Clicking the X only closes it. See [Jumping to the session](#jumping-to-the-session).
-- **Dismissed** when the user clicks it, sends a new prompt, or Claude resumes working; otherwise after 5 minutes.
+- **Dismissed** when the user clicks it, sends a new prompt in that session, or Claude resumes working in it; otherwise after 5 minutes. Activity in other Claude Code sessions leaves it alone.
 - **Quiet while waiting**: no banner when Claude only pauses for a timer or a background task.
 
 **Claude Code only.** Claudio is started by Claude Code hooks, so it works wherever Claude Code runs on your Mac: the `claude` CLI, the VS Code and JetBrains extensions, and the **Code** tab of Claude Desktop. It does not work with regular Claude chat (in Claude Desktop, on claude.ai or on the phone), which has no hooks. See [Claude Desktop](#claude-desktop) for VM and cloud sessions.
@@ -115,8 +116,8 @@ Run this way, Haiku is not involved: that part lives in the hook scripts.
 
 1. `notify.sh` starts the `claudio` app and, in parallel, `phrase.sh`.
 2. The app starts with a random canned line, so the bubble is never empty.
-3. It then asks Claude Haiku (`claude -p --model haiku`) to turn the first 1,500 characters of Claude's last message, or the notification text, into a short line. When one clearly fits, Haiku also picks a prop: trophy for passing tests, wrench for a fix, fire extinguisher for a failure, and so on. The app swaps the text and the prop in with a bounce when the answer arrives, usually 6 to 9 seconds later.
-4. `dismiss.sh` sends `SIGUSR1`, and the app slides and fades out.
+3. It then asks Claude Haiku (`claude -p --model haiku`) to turn the first 1,500 characters (in all) of Claude's last message, or the notification text, into a short line. When one clearly fits, Haiku also picks a prop: trophy for passing tests, wrench for a fix, fire extinguisher for a failure, and so on. The app swaps the text and the prop in with a bounce when the answer arrives, usually 6 to 9 seconds later.
+4. `dismiss.sh` sends `SIGUSR1` to the banner of the hook's session (its id is in the banner's arguments), and the app slides and fades out.
 5. A click anywhere but the X runs `focus.sh`, which brings the session's app to the front (below).
 
 The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never triggers the hooks again.

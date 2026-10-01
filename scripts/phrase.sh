@@ -33,7 +33,7 @@ if [ "$1" = "--check" ]; then
 fi
 
 mode="$1"; out="$2"
-text=$(cut -c1-1500)
+text=$(perl -CS -0777 -ne 'print substr($_, 0, 1500)')   # the first 1,500 characters in all, not per line
 
 pick() {
   printf '%s\n' "$@" | awk 'BEGIN{srand()} {l[NR]=$0} END{print l[int(rand()*NR)+1]}'

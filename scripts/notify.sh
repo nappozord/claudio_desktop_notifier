@@ -1,7 +1,7 @@
 #!/bin/sh
 # notify.sh <done|ask>
 # Shows the Claudio banner. Hook JSON may arrive on stdin; its text feeds the speech bubble.
-# Replaces any banner already on screen.
+# Replaces this session's banner if one is on screen; other sessions' banners stack above it.
 [ -n "$CLAUDIO_NESTED" ] && exit 0   # never fire from Claudio's own phrase-generation call
 DIR=$(cd "$(dirname "$0")" && pwd)
 . "$DIR/common.sh"
@@ -31,8 +31,16 @@ CLAUDIO_FOCUS_TTY=$(session_tty)
 export CLAUDIO_FOCUS CLAUDIO_FOCUS_APP CLAUDIO_FOCUS_DIR CLAUDIO_FOCUS_TTY
 log "mode=$mode, ${#text} chars of text, app=${CLAUDIO_FOCUS_APP:-?}, tty=${CLAUDIO_FOCUS_TTY:-none}, entrypoint=${CLAUDE_CODE_ENTRYPOINT:-?}, os=$(uname -s), jq=$(command -v jq || echo MISSING), PATH=$PATH"
 
-pkill -x claudio 2>/dev/null
-f="$(mktemp -u "${TMPDIR:-/tmp}/claudio.XXXXXX")"
+# the session id goes in the phrase file's name, so dismiss.sh can find this session's banner by its arguments
+sid=$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null | tr -cd 'A-Za-z0-9-')
+# replace only this session's previous banner (or the previous one without a session, e.g. make preview);
+# other sessions' banners stay, and the new one stacks under them
+if [ -n "$sid" ]; then
+  pkill -f "/claudio (done|ask) .*/claudio\.$sid\." 2>/dev/null
+else
+  pkill -f "/claudio (done|ask) .*/claudio\.[A-Za-z0-9]{6}\$" 2>/dev/null
+fi
+f="$(mktemp -u "${TMPDIR:-/tmp}/claudio.${sid:+$sid.}XXXXXX")"
 nohup "$BIN" "$mode" "$f" >/dev/null 2>&1 &
 log "banner started (pid $!)"
 [ -n "$CLAUDIO_LOG" ] && (sleep 1; pgrep -x claudio >/dev/null || log "banner exited within 1s") &

@@ -59,6 +59,31 @@ final class MascotView: NSView {
         phraseAt = t
     }
 
+    // stacking: banners from several sessions sit one under the other, oldest on top. Each banner's
+    // place is the number of older Claudio windows on screen (by pid), so when one closes the ones
+    // below it glide up. Checked a few times a second; the window list needs no permission.
+    var slot = 0
+    var slotY: CGFloat = 0        // current offset from the top slot, eased toward the slot's
+    var slotCheckedAt = -1.0
+
+    func updateSlot(_ t: Double, _ screen: NSRect) {
+        guard t - slotCheckedAt >= 0.25 else { return }
+        let first = slotCheckedAt < 0
+        slotCheckedAt = t
+        let me = getpid(), name = ProcessInfo.processInfo.processName
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        let older = Set(windows.compactMap { w -> pid_t? in
+            guard w[kCGWindowOwnerName as String] as? String == name,
+                  let pid = w[kCGWindowOwnerPID as String] as? pid_t, pid < me else { return nil }
+            return pid
+        })
+        // as many as fit on the screen; beyond that the newest ones overlap in the last place
+        let fit = max(1, Int((screen.height - 8) / (bounds.height + 8)))
+        slot = min(older.count, fit - 1)
+        if first { slotY = slotOffset }   // a new banner starts in its place instead of gliding there
+    }
+    var slotOffset: CGFloat { CGFloat(slot) * (bounds.height + 8) }
+
     func tick() {
         let t = Date().timeIntervalSince(start)
         // slide + fade: in from the right, out to the right
@@ -66,8 +91,10 @@ final class MascotView: NSView {
         window?.alphaValue = CGFloat(prog)   // fade together with the slide
         let hidden = (1 - prog) * (bounds.width + 40)
         let screen = NSScreen.main!.visibleFrame
+        updateSlot(t, screen)
+        slotY += (slotOffset - slotY) * 0.15
         window?.setFrameOrigin(NSPoint(x: screen.maxX - bounds.width - 12 + hidden,
-                                       y: screen.maxY - bounds.height - 8))
+                                       y: screen.maxY - bounds.height - 8 - slotY))
         pollPhrase(t)
         if t >= endAt {
             if let f = phraseFile { try? FileManager.default.removeItem(atPath: f) }
