@@ -183,13 +183,13 @@ Claudio runs from the Claude Code hooks in `~/.claude/settings.json`, so it can 
 
 For a local Code session in Desktop, turn on the debug log and send one prompt: no log line means Desktop did not run the hooks for that session.
 
-## <a id="mascots"></a>Mascots
+## <a id="mascots"></a>Mascots <img src="assets/sections/mascots.png" height="44" alt="">
 
 Most banners show the original orange mascot, but about 4 in 9 show one of two others instead (5:2:2 odds between the three) — all silent, all holding the same props, just a different shape and color:
 
 | Name (for `MASCOT`) | Look |
 |---|---|
-| *(default)* | The original: a flat-sided body, legs, blocky arms and squared eyes |
+| `orange` | The original (also what you get without asking for one): a flat-sided body, legs, blocky arms and squared eyes |
 | `yellow` | A smooth, rounded yellow body tapering to a point instead of legs, with round eyes |
 | `blue` | A blue ghost: a domed top over a wavy, scalloped hem instead of legs |
 
@@ -209,7 +209,7 @@ Most banners show the original orange mascot, but about 4 in 9 show one of two o
 
 See [Animations](#animations) for the rare crown/sunglasses/party-hat/nose accessories.
 
-## <a id="animations"></a>Animations
+## <a id="animations"></a>Animations <img src="assets/sections/animations.png" height="44" alt="">
 
 On top of the usual jump and arm-wave, things happen now and then, all random:
 
