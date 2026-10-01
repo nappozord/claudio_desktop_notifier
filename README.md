@@ -28,6 +28,7 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 - [Troubleshooting](#troubleshooting)
   - [Claude Desktop](#claude-desktop)
 - [Props](#props)
+- [Animations](#animations)
 - [Project layout](#project-layout)
 
 ## <a id="requirements"></a>Requirements <img src="assets/sections/requirements.png" height="44" alt="">
@@ -186,6 +187,16 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 - **Seasonal and time-of-day names:** `pumpkin`, `tree`, `flower`, `candle`.
 - **Task-related only:** wrench and fire extinguisher (`extinguisher`); Haiku can also pick pencil for a done task.
 - **Rare:** about 1 banner in 50 wears a crown and holds nothing.
+
+## <a id="animations"></a>Animations
+
+On top of the usual jump and arm-wave, things happen now and then, all random:
+
+- **Blink**, a backflip with a full spin, a quick twirl, and the held prop tossed into the air and caught again (backflips are done-mood only).
+- **Getting sleepy**: with nobody around for about a minute — no mouse movement, no keypress — it slumps down, its eyes close, the held prop drops to the ground, and a snot bubble and a sleepy "Zzz" show up. Moving the mouse near it again wakes it with a startled jump. Keypresses need the **Input Monitoring** permission (System Settings → Privacy & Security) the first time, or only mouse movement counts. This never happens in `ask` banners — they stay alert while waiting on you.
+- **Haiku-matched effects**: confetti bursts when the prop is a trophy or a party popper (a real success), and a small rain cloud hovers overhead when it's the fire extinguisher (something failed).
+- **In `ask` banners only**: it occasionally knocks on its own speech bubble, which jiggles, or scratches its head — both a "hey, look here" gesture.
+- **Rare accessories:** about 1 in 50 banners wears sunglasses, a party hat, or a big fake nose, alongside whatever it's holding (unlike the crown, which goes without a prop). `CLAUDIO_ACCESSORY=sunglasses|partyhat|nose` forces one for previewing.
 
 ## <a id="project-layout"></a>Project layout <img src="assets/sections/layout.png" height="44" alt="">
 
