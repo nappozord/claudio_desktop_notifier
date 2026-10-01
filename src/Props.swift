@@ -407,7 +407,9 @@ func pickItem() -> String {
     return pool.randomElement()!
 }
 
-// CLAUDIO_ITEM=<name> forces an object (or "crown") for previewing
+// CLAUDIO_ITEM=<name> forces an object (or "crown") for previewing; an empty or unknown name is ignored
+let allItems = Set(doneItems + askItems)
 let forced = ProcessInfo.processInfo.environment["CLAUDIO_ITEM"]
-let initialItem = forced.flatMap { Set(doneItems + askItems).contains($0) ? $0 : nil } ?? pickItem()
+    .flatMap { allItems.contains($0) || $0 == "crown" ? $0 : nil }
+let initialItem = forced.flatMap { allItems.contains($0) ? $0 : nil } ?? pickItem()
 let crowned = forced == "crown" || (forced == nil && Int.random(in: 0..<50) == 0)

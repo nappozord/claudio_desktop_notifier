@@ -4,6 +4,7 @@
 # Replaces any banner already on screen.
 [ -n "$CLAUDIO_NESTED" ] && exit 0   # never fire from Claudio's own phrase-generation call
 DIR=$(cd "$(dirname "$0")" && pwd)
+. "$DIR/common.sh"
 BIN="$DIR/claudio"
 [ -x "$BIN" ] || BIN="$DIR/../build/claudio"   # running from the repo
 mode="${1:-done}"
@@ -14,8 +15,11 @@ else
   field=".last_assistant_message"; [ "$mode" = "ask" ] && field=".message"
   text=$(jq -r "$field // empty" 2>/dev/null)
 fi
+log "mode=$mode, ${#text} chars of text, entrypoint=${CLAUDE_CODE_ENTRYPOINT:-?}, os=$(uname -s), jq=$(command -v jq || echo MISSING), PATH=$PATH"
 
 pkill -x claudio 2>/dev/null
 f="$(mktemp -u "${TMPDIR:-/tmp}/claudio.XXXXXX")"
 nohup "$BIN" "$mode" "$f" >/dev/null 2>&1 &
+log "banner started (pid $!)"
+[ -n "$CLAUDIO_LOG" ] && (sleep 1; pgrep -x claudio >/dev/null || log "banner exited within 1s") &
 printf '%s' "$text" | nohup "$DIR/phrase.sh" "$mode" "$f" >/dev/null 2>&1 &

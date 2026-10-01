@@ -1,5 +1,11 @@
 import Cocoa
 
+// `claudio --props` lists the names CLAUDIO_ITEM accepts (used by `make preview`)
+if mode == "--props" {
+    print((allItems.sorted() + ["crown"]).joined(separator: "\n"))
+    exit(0)
+}
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 

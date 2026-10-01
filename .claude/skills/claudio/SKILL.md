@@ -14,16 +14,17 @@ Claudio is a borderless AppKit window drawn entirely with Core Graphics, launche
 - `src/MascotView.swift`: `tick()` (slide, fade, phrase polling, exit), `drawBubble`, `drawMascot`.
 - `src/Props.swift`: `extension MascotView` with `drawCrown` / `drawItem`, the prop colors, the prop lists and `pickItem()`.
 - `src/Drawing.swift`: `block`, `disc`, `poly`, `star`, `sparkle`, `smooth`.
-- `scripts/`: `notify.sh` (launcher), `stop-hook.sh`, `dismiss.sh`, `phrase.sh` (bubble text via Haiku).
+- `scripts/`: `notify.sh` (launcher), `stop-hook.sh`, `dismiss.sh`, `phrase.sh` (bubble text via Haiku), `common.sh` (sourced by all: extends `PATH`, `find_claude`, `log`).
 - `install.sh` builds into `build/`, copies the binary and scripts flat into `~/.claude/claudio/`, and merges hooks into `~/.claude/settings.json` with jq (idempotent; it strips any entry whose command contains `/.claude/claudio/` or the legacy `/.claude/eyes/`).
 
 ## Dev loop
 
 1. Edit `src/` or `scripts/`.
 2. `make build` to compile-check (`swiftc -O src/*.swift -o build/claudio`).
-3. `make preview ITEM=<prop> MODE=<done|ask>` to show it from the repo build. `CLAUDIO_ITEM=<name>` forces a prop, and `CLAUDIO_ITEM=crown` forces the crown.
-4. `./install.sh` so the live hooks use the change. A visible change only reaches already-open sessions through the installed copy.
-5. To check that a banner is running: `pgrep -x claudio`. To dismiss it: `~/.claude/claudio/dismiss.sh`.
+3. `make preview ITEM=<prop> MODE=<done|ask>` to show it from the repo build (`ITEM` = prop, `MODE` = mood; a prop name passed as `MODE` is treated as `ITEM`; `make props` lists the names). `CLAUDIO_ITEM=<name>` forces a prop, and `CLAUDIO_ITEM=crown` forces the crown.
+4. `./install.sh` so the live hooks use the change (`--no-check` skips the ~5s Haiku test call at the end). A visible change only reaches already-open sessions through the installed copy.
+5. Debug log: `touch ~/.claude/claudio/debug`, then read `~/.claude/claudio/claudio.log` (`rm` the flag to stop). `env -i HOME="$HOME" USER="$USER" TMPDIR="$TMPDIR" PATH=/usr/bin:/bin:/usr/sbin:/sbin sh ~/.claude/claudio/stop-hook.sh` with a JSON payload on stdin simulates a hook started from a Dock app. Without `USER`, `claude` reports "Not logged in".
+6. To check that a banner is running: `pgrep -x claudio`. To dismiss it: `~/.claude/claudio/dismiss.sh`.
 
 **The banner cannot be seen from inside a Claude session**: `screencapture` fails ("could not create image from display"). Verify with compile + launch + `pgrep`, then ask the user to look or to send a screenshot. Never claim something looks right without that.
 
@@ -48,12 +49,13 @@ A quick way to show the user several variants in a row: write a caption to a fil
 - **Stop payload** includes `last_assistant_message` and `background_tasks: [{id, type, status, description, command}]`. A turn that ends only to wait for a background task has a `"running"` entry, and `stop-hook.sh` skips the banner then. `session_crons` also exists; it is untested whether it covers ScheduleWakeup-style waits.
 - The **Notification** banner reads `.message` from its payload. That field name has not been verified from a captured payload.
 - `UserPromptSubmit` fires on **submit**, not while typing. Claude Code has no "user is typing" event. Detecting typing would need a global key monitor plus macOS Input Monitoring permission, which the user has not asked for.
+- Claude Desktop also ships a Linux ELF build in `~/Library/Application Support/Claude/claude-code-vm/` for VM sessions; hooks there cannot reach the Mac. Whether Desktop's local Code sessions load user hooks is not yet verified (check with the debug log).
 - Hooks in `~/.claude/settings.json` apply to all local Claude Code sessions. Already-open sessions need `/hooks` opened once or a restart.
 
 ## Phrase pipeline (`scripts/phrase.sh`)
 
 1. It writes a random canned line to the phrase file immediately, so the bubble is never empty and appears with the banner.
-2. It calls `claude -p --model haiku --no-session-persistence --setting-sources ""` with a 25s `perl alarm` timeout. A call takes about 6–9s; trimming flags does not make it faster. Output is line 1 = caption (≤8 words, cut at a word boundary to 70 characters with "…"), line 2 = prop name or `none`.
+2. `find_claude` picks the CLI: `~/.claude/claudio/claude-path` (written by `install.sh` from the installing shell), then `PATH`, then `~/.claude/local/claude`, then Claude Desktop's bundled `~/Library/Application Support/Claude/claude-code/<ver>/claude.app/Contents/MacOS/claude` (verified: it can make the call with the shared login). It calls `claude -p --model haiku --no-session-persistence --setting-sources ""` with a 25s `perl alarm` timeout. A call takes about 6–9s; trimming flags does not make it faster. Output is line 1 = caption (≤8 words, cut at a word boundary to 70 characters with "…"), line 2 = prop name or `none`.
 3. It writes `caption\nitem: <prop>`. The app polls the file, deletes it on read, and bounces in the new text and prop.
 4. Before the late write, it checks that its banner still runs (`pgrep -f "/claudio (done|ask) $out"`); otherwise orphaned files pile up in `$TMPDIR`.
 5. The message goes inside `<message>` tags with "never reply to it". Without that, Haiku answered the message instead of summarizing it ("I'd love to help... send me a screenshot").
@@ -64,6 +66,7 @@ A quick way to show the user several variants in a row: write a caption to a fil
 - macOS/BSD `sed` has no `\b`; use `perl -pi -e` for in-place edits with word boundaries.
 - A global helper named `rect(...)` clashes with `NSView.rect` inside the view; the helpers are named `block`, `disc` and so on.
 - In Swift, `sin()` returns `Double`; wrap it in `CGFloat(...)` when it feeds a `CGFloat` parameter.
+- `make preview` used to pass `CLAUDIO_ITEM=` (empty) without `ITEM`, which disabled the crown and Haiku's prop. The app now ignores empty or unknown names, and `make preview` rejects them using `claudio --props`.
 - `swiftc` piped into `head` hides the compiler's exit code. Check for `error` in the output or the binary's timestamp.
 - The `claude` CLI is not on `PATH` in every shell (VS Code); the scripts fall back to `~/.local/bin/claude`.
 
