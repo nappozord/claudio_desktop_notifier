@@ -2,6 +2,8 @@
 
 A small animated desktop notifier for [Claude Code](https://claude.com/claude-code) on macOS.
 
+<img src="assets/claudio.png" alt="Claudio, wearing a crown, saying: I'm Claudio! Try me out!" width="440">
+
 When Claude finishes a task or needs input, a banner slides in at the top right of the screen, like a macOS notification. A little orange mascot shouts silently, holds a random prop, and a speech bubble says what happened ("All 24 tests pass!", "Need your OK for Bash!").
 
 - **Done** (Claude finished): the mascot jumps happily and holds something celebratory.
@@ -23,11 +25,14 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 ### With Homebrew
 
 ```sh
-brew install nappozord/tap/claudio
-claudio-setup
+brew update && brew install nappozord/tap/claudio && claudio-setup
 ```
 
-`brew install` builds Claudio and installs it. Homebrew does not let a formula edit your home folder, so `claudio-setup` is the one extra step: it registers four hooks in `~/.claude/settings.json`, keeping every other setting (a backup is written to `settings.json.claudio-backup`). Run it once; `brew upgrade` needs no re-run.
+- `brew update` makes Homebrew see the latest version. On its own, `brew install` refreshes taps at most once a day, so it could still see an old one.
+- `brew install` builds Claudio and installs it. If an older version is installed, it upgrades it.
+- `claudio-setup` is the one extra step, because Homebrew does not let a formula edit your home folder. It registers four hooks in `~/.claude/settings.json`, keeping every other setting (a backup is written to `settings.json.claudio-backup`).
+
+Run `claudio-setup` once. Later updates need only `brew update && brew upgrade nappozord/tap/claudio`.
 
 To remove it:
 

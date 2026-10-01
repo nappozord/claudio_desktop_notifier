@@ -25,4 +25,5 @@ The procedure is in `RELEASING.md` at the repo root. Read it first and follow it
 - Tag only a clean, pushed `main` that passes `make build`: the tag is what Homebrew compiles.
 - `releases/latest` URLs cannot replace the bump: `brew upgrade` compares versions, and `sha256` pins one archive.
 - Homebrew sandboxes install and post_install (checked in Homebrew 7.0.7's `formula_installer.rb`), so a formula cannot write `~/.claude/settings.json`. Users run `claudio-setup` once. Its hooks point at `$(brew --prefix)/opt/claudio/libexec/scripts/`, so upgrades need no re-run.
+- The one line for users is `brew update && brew install nappozord/tap/claudio && claudio-setup` (RELEASING.md step 6). `brew update` is needed because `brew install` refreshes taps at most every 24h; `brew install` upgrades an outdated install by default.
 - `brew style Formula/claudio.rb` must report no offenses (it wants `depends_on "jq"` before `depends_on :macos`).

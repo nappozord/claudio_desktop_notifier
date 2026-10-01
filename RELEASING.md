@@ -72,12 +72,25 @@ claudio ITEM=crown                   # the banner shows; click it to close
 
 Users who already ran `claudio-setup` need nothing else: the hooks point at Homebrew's `opt/claudio` path, which always holds the installed version.
 
+## 6. Tell users
+
+One line works for everyone: a new install, an upgrade from any older version, and a first `claudio-setup` for people coming from 1.1.0 or a repo install:
+
+```sh
+brew update && brew install nappozord/tap/claudio && claudio-setup
+```
+
+- **`brew update` is needed.** `brew install` refreshes taps at most once every 24 hours (`HOMEBREW_AUTO_UPDATE_SECS`), so without it Homebrew may still see the previous version.
+- **`brew install` also upgrades** an outdated install, unless `HOMEBREW_NO_INSTALL_UPGRADE` is set.
+- People who already ran `claudio-setup` only need `brew update && brew upgrade nappozord/tap/claudio`.
+
 ## When something goes wrong
 
 | Symptom | Cause | Fix |
 |---|---|---|
 | `SHA256 mismatch` on upgrade | The formula's `sha256` is not the checksum of the tag's archive, usually a typo or a hash from another tag | Re-run the `curl ... \| shasum -a 256` line from step 4 and put that value in the formula |
 | `already installed` / no upgrade offered | Homebrew has the old formula, or the `url` still names the old tag | `brew update`, then check the `url` line |
+| `claudio-setup: command not found` right after `brew install` | Homebrew still had a pre-1.2.0 formula, which has no `claudio-setup` | `brew update && brew upgrade nappozord/tap/claudio` |
 | `404` on download | The tag was not pushed, or its name differs from the `url` | `git ls-remote --tags origin` and compare |
 | Build fails in `swiftc` | The tagged code does not compile, or the Xcode Command Line Tools are missing | Run `make build` on that commit; `xcode-select --install`. For the full log: `brew install --verbose --debug nappozord/tap/claudio` |
 | A broken version was tagged | | Fix it and release a new patch version. Never move a tag people may have installed from: its checksum would change |
