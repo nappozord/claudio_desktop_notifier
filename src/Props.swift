@@ -4,13 +4,17 @@ import Cocoa
 
 extension MascotView {
     func drawCrown(_ cx: CGFloat) {
-        poly([NSPoint(x: cx - 46, y: 235), NSPoint(x: cx + 46, y: 235), NSPoint(x: cx + 46, y: 292),
-              NSPoint(x: cx + 23, y: 262), NSPoint(x: cx, y: 298), NSPoint(x: cx - 23, y: 262),
-              NSPoint(x: cx - 46, y: 292)], gold)
-        block(cx - 46, 232, 92, 14, goldDark, r: 3)
-        disc(cx - 26, 252, 12, 12, NSColor(calibratedRed: 0.2, green: 0.45, blue: 0.9, alpha: 1))
-        disc(cx, 254, 14, 14, NSColor(calibratedRed: 0.9, green: 0.15, blue: 0.25, alpha: 1))
-        disc(cx + 26, 252, 12, 12, NSColor(calibratedRed: 0.2, green: 0.7, blue: 0.35, alpha: 1))
+        // rests on whatever this mascot's own head-top actually is, not a fixed height — every
+        // literal below was tuned for the classic/round top of 235, so shift them all by however
+        // much taller (or shorter) this one's real top is
+        let dy = headTopY - 235
+        poly([NSPoint(x: cx - 46, y: 235 + dy), NSPoint(x: cx + 46, y: 235 + dy), NSPoint(x: cx + 46, y: 292 + dy),
+              NSPoint(x: cx + 23, y: 262 + dy), NSPoint(x: cx, y: 298 + dy), NSPoint(x: cx - 23, y: 262 + dy),
+              NSPoint(x: cx - 46, y: 292 + dy)], gold)
+        block(cx - 46, 232 + dy, 92, 14, goldDark, r: 3)
+        disc(cx - 26, 252 + dy, 12, 12, NSColor(calibratedRed: 0.2, green: 0.45, blue: 0.9, alpha: 1))
+        disc(cx, 254 + dy, 14, 14, NSColor(calibratedRed: 0.9, green: 0.15, blue: 0.25, alpha: 1))
+        disc(cx + 26, 252 + dy, 12, 12, NSColor(calibratedRed: 0.2, green: 0.7, blue: 0.35, alpha: 1))
     }
 
     // rare accessory, worn alongside whatever's held — except crown, which empties the hands (see

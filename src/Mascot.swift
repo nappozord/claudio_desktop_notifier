@@ -1,5 +1,69 @@
 import Cocoa
 
+// A limb (leg or arm): the classic's rounded block either way. For anything else, a shape that's
+// sharp (flat) where it meets the body and rounded at the outer tip, rather than a plain disc —
+// `roundRight` says which end that tip is on (nil, the default, falls back to a full disc, used
+// where the limb has no single "toward the body" direction). Built as a flat rect plus one disc
+// at just the rounded end (overlapping it by its own radius) rather than a true capsule path —
+// same solid fill color on both pieces, so no seam shows.
+func limb(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ c: NSColor, roundRight: Bool? = nil) {
+    if bodyStyle == .classic {
+        block(x, y, w, h, c)
+    } else if let roundRight = roundRight {
+        let r = h / 2
+        if roundRight {
+            block(x, y, w - r, h, c)
+            disc(x + w - r, y + h / 2, h, h, c)
+        } else {
+            block(x + r, y, w - r, h, c)
+            disc(x + r, y + h / 2, h, h, c)
+        }
+    } else {
+        disc(x + w / 2, y + h / 2, w, h, c)
+    }
+}
+
+// The round body's own silhouette — wide rounded shoulders tapering to a small rounded base, used
+// both at full size (the body itself) and scaled down (the base shadow below), so the shadow is
+// geometrically a miniature of the same shape and always follows its curve exactly.
+func teardropPath(_ cx: CGFloat) -> NSBezierPath {
+    let path = NSBezierPath()
+    let topL = NSPoint(x: cx - 100, y: 235), topR = NSPoint(x: cx + 100, y: 235)
+    let baseL = NSPoint(x: cx - 14, y: 48), baseR = NSPoint(x: cx + 14, y: 48)
+    path.move(to: topL)
+    path.curve(to: topR, controlPoint1: NSPoint(x: cx - 50, y: 255), controlPoint2: NSPoint(x: cx + 50, y: 255))
+    path.curve(to: baseR, controlPoint1: NSPoint(x: cx + 95, y: 150), controlPoint2: NSPoint(x: cx + 40, y: 70))
+    path.curve(to: baseL, controlPoint1: NSPoint(x: cx + 6, y: 36), controlPoint2: NSPoint(x: cx - 6, y: 36))
+    path.curve(to: topL, controlPoint1: NSPoint(x: cx - 40, y: 70), controlPoint2: NSPoint(x: cx - 95, y: 150))
+    path.close()
+    return path
+}
+
+// A classic ghost silhouette: a smoothly domed top (same ~235 head height the other styles use,
+// so eyes/mouth need no repositioning) over straight sides that drop into a scalloped, wavy hem
+// — 4 rounded bumps standing in for legs, the same way round's tapered base and (the now-removed)
+// star's own points did for them.
+func ghostPath(_ cx: CGFloat) -> NSBezierPath {
+    let path = NSBezierPath()
+    let left = cx - 100, right = cx + 100
+    let sideTop: CGFloat = 224, domeTop: CGFloat = 295   // taller dome than the first pass
+    let hemY: CGFloat = 55, dipY: CGFloat = 28   // the hem's flat notches and the bottom of each bump
+    path.move(to: NSPoint(x: left, y: sideTop))
+    path.curve(to: NSPoint(x: right, y: sideTop),
+               controlPoint1: NSPoint(x: left, y: domeTop), controlPoint2: NSPoint(x: right, y: domeTop))
+    path.line(to: NSPoint(x: right, y: hemY))
+    let bumps = 4
+    let bumpW = (right - left) / CGFloat(bumps)
+    for i in 0..<bumps {
+        let xStart = right - CGFloat(i) * bumpW, xEnd = xStart - bumpW
+        path.curve(to: NSPoint(x: xEnd, y: hemY),
+                   controlPoint1: NSPoint(x: xStart - bumpW * 0.15, y: dipY),
+                   controlPoint2: NSPoint(x: xEnd + bumpW * 0.15, y: dipY))
+    }
+    path.close()   // straight back up the left side to sideTop
+    return path
+}
+
 // The mascot's body and its moves: the always-on jump/wave/mouth loop, plus the random one-off
 // animations (blink, backflip, twirl, prop toss, getting sleepy) layered on top of it. Most are a
 // pure function of `t` — their own `xAt` timestamp (declared in MascotView.swift) plus a fixed
@@ -123,9 +187,13 @@ extension MascotView {
         }
         if sinceScratch > scratchDuration { scratchAt = t + Double.random(in: 7...11) }
 
-        for i in 0..<4 {
-            let lift: CGFloat = i == 0 ? wave * 0.5 : (i == 3 ? -wave * 0.5 : 0)
-            block(cx - 82 + CGFloat(i) * 44, 40 + lift, 24, 50, orange)
+        // only the classic mascot has legs — round's tapered base and star's own lower points
+        // stand in for them
+        if bodyStyle == .classic {
+            for i in 0..<4 {
+                let lift: CGFloat = i == 0 ? wave * 0.5 : (i == 3 ? -wave * 0.5 : 0)
+                limb(cx - 82 + CGFloat(i) * 44, 40 + lift, 24, 50, orange)
+            }
         }
 
         // body + arms + head sink down over the legs as sleepiness rises (drawn on top of them,
@@ -136,11 +204,44 @@ extension MascotView {
         let armDroop = sleepiness * 45
 
         // arms (wave up)
-        block(cx - 140 + scratchWobble, 165 + wave - armDroop + scratchLift, 40, 36, orange)
-        block(cx + 100 + knockLift * 0.4, 165 - wave - armDroop + knockLift, 40, 36, orange)
-        // body
-        block(cx - 100, 85, 200, 150, orange, r: 8)
-        block(cx - 100, 85, 200, 14, shade, r: 4)
+        limb(cx - 140 + scratchWobble, 165 + wave - armDroop + scratchLift, 40, 36, orange, roundRight: false)
+        limb(cx + 100 + knockLift * 0.4, 165 - wave - armDroop + knockLift, 40, 36, orange, roundRight: true)
+        // body: the default is a flat rect plus a separate highlight strip; round is a smooth
+        // teardrop instead (wide rounded shoulders tapering to a small rounded base); ghost is a
+        // domed top over a scalloped, wavy hem. The non-classic shapes both use the same
+        // top-to-bottom gradient — no seam between "the body" and "the shade", unlike the
+        // default's two flat pieces.
+        switch bodyStyle {
+        case .round:
+            NSGradient(colors: [orange, shade])?.draw(in: teardropPath(cx), angle: -90)
+        case .ghost:
+            NSGradient(colors: [orange, shade])?.draw(in: ghostPath(cx), angle: -90)
+        case .classic:
+            block(cx - 100, 85, 200, 150, orange, r: 8)
+            block(cx - 100, 85, 200, 14, shade, r: 4)
+        }
+        // accent color: the one trait (not just a recolor) telling fleet mascots apart. For the
+        // default, a flat belly patch, low enough on the torso to clear the face. For a round
+        // body, a shadow band across the base instead: a plain rect, clipped to the body's own
+        // teardrop shape, so its left/right edges are the body's real silhouette at every height
+        // (a scaled-down copy of the same shape, tried earlier, sits inside that edge almost
+        // everywhere and leaves a gap — only a shared clip actually guarantees no gap). A soft
+        // top-to-bottom fade blends its top into the body rather than showing a hard inner edge.
+        if let accentColor = accentColor {
+            if roundBody {
+                ctx.saveGState()
+                teardropPath(cx).addClip()
+                // y starts at 0, not 48 (the base points' nominal y) — the curve's control points
+                // pull the tip's bezier down a bit below that, and stopping the band exactly at 48
+                // left a sliver of that lower dip uncovered
+                let band = NSRect(x: cx - 110, y: 0, width: 220, height: 100)
+                NSGradient(colors: [accentColor.withAlphaComponent(0), accentColor.withAlphaComponent(0.85)])?
+                    .draw(in: band, angle: -90)
+                ctx.restoreGState()
+            } else {
+                block(cx - 46, 95, 92, 70, accentColor, r: 10)
+            }
+        }
 
         // blink: squash to near-closed at mid-blink, open at both ends; reschedule once it's done
         let sinceBlink = t - blinkAt
@@ -153,25 +254,37 @@ extension MascotView {
         let eyeOpen = (1 - 0.7 * sleepiness) * (1 + 0.3 * startled)
         let eyeWidth: CGFloat = 22 + 10 * sleepiness
         let headDroop = sleepiness * 45
+        // ghost grew taller, so its face needs to move up with it to stay inside the dome —
+        // same offset above its own sideTop (224) that the classic/round face sits above 180
+        let faceBaseY: CGFloat = bodyStyle == .ghost ? 225 : 196
         for side in [-1.0, 1.0] {
-            let ey: CGFloat = (isAsk ? 190 : 196) - headDroop
-            let eh = (isAsk ? 46 : 38) * blink * eyeOpen
-            block(cx + CGFloat(side) * 44 - eyeWidth / 2 + ox * energy,
-                  ey + oy * energy + ((isAsk ? 46 : 38) - eh) / 2, eyeWidth, eh, ink, r: 3)
+            let ey: CGFloat = faceBaseY - (isAsk ? 6 : 0) - headDroop
+            let slotH: CGFloat = isAsk ? 46 : 38
+            let eh = slotH * blink * eyeOpen
+            let ex = cx + CGFloat(side) * 44 + ox * energy
+            if roundBody {
+                // full circles instead of rounded rects, matching the round theme; same center
+                // either way, so blinking/drooping still squashes toward the slot's own middle
+                disc(ex, ey + oy * energy + slotH / 2, eyeWidth, eh, ink)
+            } else {
+                // squared, like the classic mascot — ghost uses this too
+                block(ex - eyeWidth / 2, ey + oy * energy + (slotH - eh) / 2, eyeWidth, eh, ink, r: 3)
+            }
         }
         drawAccessory(cx, headDroop)
 
         // open mouth: shouts without making a sound. While dozing off it first sags further down
         // the face (not shrinking or fading yet), and only once it's fully down does it fade out —
         // the snoozing bubble below takes over as the "asleep" sign from there.
+        let mouthBaseY: CGFloat = bodyStyle == .ghost ? 180 : 150
         let mouthDrop = min(1, sleepiness / 0.3) * 40
         let mouthVisible = max(0, min(1, (0.45 - sleepiness) / 0.15))
         if mouthVisible > 0.01 {
             let mh = 10 + 40 * shout * energy
-            block(cx - 32, 150 - headDroop - mouthDrop - (mh - 10) * 0.5, 64, mh,
+            block(cx - 32, mouthBaseY - headDroop - mouthDrop - (mh - 10) * 0.5, 64, mh,
                   mouthColor.withAlphaComponent(mouthVisible), r: 6)
             if mh > 28 {
-                block(cx - 20, 150 - headDroop - mouthDrop - (mh - 10) * 0.5 + 4, 40, 8,
+                block(cx - 20, mouthBaseY - headDroop - mouthDrop - (mh - 10) * 0.5 + 4, 40, 8,
                       NSColor.white.withAlphaComponent(mouthVisible), r: 2)
             }
         }
@@ -186,7 +299,7 @@ extension MascotView {
             let inflate = phase < 0.82 ? CGFloat(phase / 0.82) : 0   // holds at 0 right after each pop
             let size = (6 + inflate * 68) * sleepiness   // double the previous size
             if size > 1.5 {
-                let anchor = NSPoint(x: cx + 6, y: 150 - headDroop + 10)
+                let anchor = NSPoint(x: cx + 6, y: mouthBaseY - headDroop + 10)
                 let bubble = NSRect(x: anchor.x - size / 2, y: anchor.y - size * 0.15,
                                      width: size, height: size * 0.95)
                 ctx.saveGState()
@@ -309,6 +422,6 @@ extension MascotView {
         // right hand, redrawn on top so a still-held item looks gripped (an arm that's dropped
         // its item just rests at the same spot — no special-casing needed)
         // (matches armDroop above, and adds the same knockLift as the arm's other draw)
-        block(cx + 100 + knockLift * 0.4, 165 - wave - sink - sleepiness * 45 + knockLift, 40, 36, orange)
+        limb(cx + 100 + knockLift * 0.4, 165 - wave - sink - sleepiness * 45 + knockLift, 40, 36, orange, roundRight: true)
     }
 }

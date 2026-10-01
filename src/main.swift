@@ -1,6 +1,7 @@
 import Cocoa
 
-// `claudio --props` / `--accessories` list the names PROP / ACCESSORY accept (also used by `make preview`)
+// `claudio --props` / `--accessories` / `--mascots` list the names PROP / ACCESSORY / MASCOT
+// accept (also used by `make preview`)
 if mode == "--props" {
     print(allItems.sorted().joined(separator: "\n"))
     exit(0)
@@ -9,9 +10,14 @@ if mode == "--accessories" {
     print(accessoryNames.sorted().joined(separator: "\n"))
     exit(0)
 }
+if mode == "--mascots" {
+    print(mascotNames.joined(separator: "\n"))
+    exit(0)
+}
 if mode == "--help" || mode == "-h" { print(usage); exit(0) }
 let propList = allItems.sorted().joined(separator: " ")
 let accessoryList = accessoryNames.sorted().joined(separator: " ")
+let mascotList = mascotNames.joined(separator: " ")
 if let prop = options["PROP"], !isProp(prop) {
     fputs("Unknown PROP '\(prop)'. Props: \(propList)\n", stderr)
     exit(1)
@@ -20,9 +26,13 @@ if let acc = options["ACCESSORY"], !accessoryNames.contains(acc) {
     fputs("Unknown ACCESSORY '\(acc)'. Accessories: \(accessoryList)\n", stderr)
     exit(1)
 }
-if mode != "done" && mode != "ask" && !isProp(mode) && !accessoryNames.contains(mode) {
+if let m = options["MASCOT"], !mascotNames.contains(m) {
+    fputs("Unknown MASCOT '\(m)'. Mascot colors: \(mascotList)\n", stderr)
+    exit(1)
+}
+if mode != "done" && mode != "ask" && !isProp(mode) && !accessoryNames.contains(mode) && !mascotNames.contains(mode) {
     fputs("Unknown mode '\(mode)': use done or ask (props go in PROP=, accessories in ACCESSORY=, " +
-          "e.g. claudio PROP=pizza)\n\n\(usage)\n", stderr)
+          "mascot colors in MASCOT=, e.g. claudio PROP=pizza)\n\n\(usage)\n", stderr)
     exit(1)
 }
 

@@ -27,6 +27,7 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 - [Haiku captions](#haiku-captions)
 - [Troubleshooting](#troubleshooting)
   - [Claude Desktop](#claude-desktop)
+- [Mascots](#mascots)
 - [Props](#props)
 - [Animations](#animations)
 - [Project layout](#project-layout)
@@ -74,22 +75,24 @@ This builds the app, copies it to `~/.claude/claudio/`, and registers the same f
 
 ## <a id="preview"></a>Preview <img src="assets/sections/preview.png" height="48" alt="">
 
-Three settings: **`PROP` picks the held prop**, **`ACCESSORY` picks a worn one** (crown included), and **`MODE` picks the mood** (`done` or `ask`).
+Four settings: **`PROP` picks the held prop**, **`ACCESSORY` picks a worn one** (crown included), **`MASCOT` picks which one of the fleet** (see [Mascots](#mascots)), and **`MODE` picks the mood** (`done` or `ask`).
 
 ```sh
 make preview PROP=pizza                     # a specific prop
 make preview ACCESSORY=crown                # the rare crown (no prop held)
 make preview ACCESSORY=sunglasses PROP=pizza  # worn alongside a held prop
+make preview MASCOT=yellow                  # a specific mascot, instead of the random pick
 make preview PROP=bell MODE=ask             # a prop in the "ask" mood
-make preview                                # random prop, "done" mood
-make preview MODE=ask                       # random prop, "ask" mood
+make preview                                # random prop and mascot, "done" mood
+make preview MODE=ask                       # random prop and mascot, "ask" mood
 make preview TEXT="All 24 tests pass"       # a fake message, sent through Haiku like a real one
 make props                                  # every name PROP accepts
 make accessories                            # every name ACCESSORY accepts
+make mascots                                # every name MASCOT accepts
 ```
 
-- **`PROP`** takes the internal names listed by `make props` (`icecream`, `popper`, `sign`...), not the names in the [Props](#props) table. **`ACCESSORY`** takes the names from `make accessories` (`crown`, `sunglasses`, `partyhat`, `nose`). `make preview` stops and lists the valid names if one is unknown.
-- **`MODE`** only changes how the mascot moves and which props it picks at random. A prop or accessory name given as `MODE` (`make preview MODE=crown`) is shown as if it were `PROP`/`ACCESSORY`.
+- **`PROP`** takes the internal names listed by `make props` (`icecream`, `popper`, `sign`...), not the names in the [Props](#props) table. **`ACCESSORY`** takes the names from `make accessories` (`crown`, `sunglasses`, `partyhat`, `nose`). **`MASCOT`** takes the names from `make mascots`. `make preview` stops and lists the valid names if one is unknown.
+- **`MODE`** only changes how the mascot moves and which props it picks at random. A prop, accessory or mascot name given as `MODE` (`make preview MODE=crown`, `make preview MODE=yellow`) is shown as if it were `PROP`/`ACCESSORY`/`MASCOT`.
 - **`TEXT`**: without it, the bubble shows a canned line. With it, Haiku writes the line and may swap in a task-related prop a few seconds later, unless `PROP` forces one.
 
 `make preview` runs the repo build, not the installed copy.
@@ -101,9 +104,11 @@ The `claudio` app also takes these settings as arguments, which is handy with th
 ```sh
 claudio ACCESSORY=crown
 claudio PROP=bell MODE=ask
+claudio MASCOT=blue PROP=wand
 claudio TEXT="Hello there" PROP=pizza ACCESSORY=sunglasses
 claudio --props                         # every name PROP accepts
 claudio --accessories                   # every name ACCESSORY accepts
+claudio --mascots                       # every name MASCOT accepts
 claudio --help
 ```
 
@@ -177,6 +182,18 @@ Claudio runs from the Claude Code hooks in `~/.claude/settings.json`, so it can 
 - Cloud and SSH sessions run on another machine for the same reason.
 
 For a local Code session in Desktop, turn on the debug log and send one prompt: no log line means Desktop did not run the hooks for that session.
+
+## <a id="mascots"></a>Mascots
+
+Most banners show the original orange mascot, but about 4 in 9 show one of two others instead (5:2:2 odds between the three) — all silent, all holding the same props, just a different shape and color:
+
+| Name (for `MASCOT`) | Look |
+|---|---|
+| *(default)* | The original: a flat-sided body, legs, blocky arms and squared eyes |
+| `yellow` | A smooth, rounded yellow body tapering to a point instead of legs, with round eyes |
+| `blue` | A blue ghost: a domed top over a wavy, scalloped hem instead of legs |
+
+`MASCOT=<name>` (or `CLAUDIO_MASCOT=`) forces one for previewing — see [Preview](#preview). The crown and the other rare accessories work on every mascot; the crown rests on each one's own actual head height, not a fixed spot.
 
 ## <a id="props"></a>Props <img src="assets/sections/props.png" height="44" alt="">
 
