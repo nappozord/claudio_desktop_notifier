@@ -29,14 +29,14 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 - [Props](#props)
 - [Project layout](#project-layout)
 
-## Requirements <img src="assets/sections/requirements.png" height="44" alt="">
+## <a id="requirements"></a>Requirements <img src="assets/sections/requirements.png" height="44" alt="">
 
 - macOS
 - Xcode Command Line Tools (`swiftc`): `xcode-select --install` (Homebrew already needs them)
 - `jq`: built into macOS 15 and later; on older versions, `brew install jq`
 - Claude Code, logged in, for task-specific bubble lines (optional: without it, Claudio uses canned lines). See [Haiku captions](#haiku-captions) for where Claudio looks for it.
 
-## Install <img src="assets/sections/install.png" height="44" alt="">
+## <a id="install"></a>Install <img src="assets/sections/install.png" height="44" alt="">
 
 ### With Homebrew
 
@@ -70,7 +70,7 @@ This builds the app, copies it to `~/.claude/claudio/`, and registers the same f
 - Setup ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `--no-check` skips that call.
 - Already-open Claude Code sessions pick up the hooks after `/hooks` is opened once, or after a restart. The hooks apply to every local Claude Code session: CLI, VS Code extension, and the desktop app's Code tab.
 
-## Preview <img src="assets/sections/preview.png" height="48" alt="">
+## <a id="preview"></a>Preview <img src="assets/sections/preview.png" height="48" alt="">
 
 Two settings: **`ITEM` picks the prop**, and **`MODE` picks the mood** (`done` or `ask`).
 
@@ -104,7 +104,7 @@ claudio --help
 
 Run this way, Haiku is not involved: that part lives in the hook scripts.
 
-## How it works <img src="assets/sections/how-it-works.png" height="44" alt="">
+## <a id="how-it-works"></a>How it works <img src="assets/sections/how-it-works.png" height="44" alt="">
 
 | Hook | Script | Effect |
 |---|---|---|
@@ -123,7 +123,7 @@ The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never tr
 
 **Privacy and cost:** each banner sends Claude's last message (truncated) to Claude Haiku through the local Claude Code login. That is one small API call per banner.
 
-## Jumping to the session <img src="assets/sections/jumping.png" height="44" alt="">
+## <a id="jumping-to-the-session"></a>Jumping to the session <img src="assets/sections/jumping.png" height="44" alt="">
 
 `notify.sh` records where the session runs: the app it runs in (macOS passes each app's ID to the hooks it starts), the session's folder, and its terminal tab, if any. On a click, `focus.sh` uses them:
 
@@ -136,7 +136,7 @@ The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never tr
 
 Started by hand (`claudio ITEM=crown`), the banner has no session, so a click only closes it.
 
-## Haiku captions <img src="assets/sections/haiku.png" height="44" alt="">
+## <a id="haiku-captions"></a>Haiku captions <img src="assets/sections/haiku.png" height="44" alt="">
 
 `phrase.sh` uses the first `claude` it finds, in this order:
 
@@ -147,7 +147,7 @@ Started by hand (`claudio ITEM=crown`), the banner has no session, so a click on
 
 The call uses that copy's login. It skips your settings files (`--setting-sources ""`), so an `apiKeyHelper` or provider set only in `settings.json` does not reach it; environment variables do.
 
-## Troubleshooting <img src="assets/sections/troubleshooting.png" height="43" alt="">
+## <a id="troubleshooting"></a>Troubleshooting <img src="assets/sections/troubleshooting.png" height="43" alt="">
 
 Turn on the debug log, reproduce the problem, then read the log:
 
@@ -173,7 +173,7 @@ Claudio runs from the Claude Code hooks in `~/.claude/settings.json`, so it can 
 
 For a local Code session in Desktop, turn on the debug log and send one prompt: no log line means Desktop did not run the hooks for that session.
 
-## Props <img src="assets/sections/props.png" height="44" alt="">
+## <a id="props"></a>Props <img src="assets/sections/props.png" height="44" alt="">
 
 | Mood | Random props (name for `ITEM`) |
 |---|---|
@@ -186,7 +186,7 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 - **Task-related only:** wrench and fire extinguisher (`extinguisher`); Haiku can also pick pencil for a done task.
 - **Rare:** about 1 banner in 50 wears a crown and holds nothing.
 
-## Project layout <img src="assets/sections/layout.png" height="44" alt="">
+## <a id="project-layout"></a>Project layout <img src="assets/sections/layout.png" height="44" alt="">
 
 ```
 src/
