@@ -14,27 +14,40 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 ## Requirements
 
 - macOS
-- Xcode Command Line Tools (`swiftc`): `xcode-select --install`
+- Xcode Command Line Tools (`swiftc`): `xcode-select --install` (Homebrew already needs them)
 - `jq`: built into macOS 15 and later; on older versions, `brew install jq`
 - Claude Code, logged in, for task-specific bubble lines (optional: without it, Claudio uses canned lines). See [Haiku captions](#haiku-captions) for where Claudio looks for it.
 
 ## Install
 
+### With Homebrew
+
+```sh
+brew install nappozord/tap/claudio
+claudio-setup
+```
+
+`brew install` builds Claudio and installs it. Homebrew does not let a formula edit your home folder, so `claudio-setup` is the one extra step: it registers four hooks in `~/.claude/settings.json`, keeping every other setting (a backup is written to `settings.json.claudio-backup`). Run it once; `brew upgrade` needs no re-run.
+
+To remove it:
+
+```sh
+claudio-uninstall
+brew uninstall claudio
+```
+
+### From the repo
+
 ```sh
 ./install.sh        # or: make install
 ```
 
-This builds the app, copies it to `~/.claude/claudio/`, and registers four hooks in `~/.claude/settings.json`, keeping every other setting (a backup is written to `settings.json.claudio-backup`). Re-running it is safe; it replaces its own entries.
+This builds the app, copies it to `~/.claude/claudio/`, and registers the same four hooks. Re-running it is safe; it replaces its own entries, including the Homebrew ones (and `claudio-setup` replaces the repo ones). To remove it: `./uninstall.sh` (or `make uninstall`).
 
-It ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `./install.sh --no-check` skips that call.
+### Both ways
 
-Already-open Claude Code sessions pick up the hooks after `/hooks` is opened once, or after a restart. The hooks apply to every local Claude Code session: CLI, VS Code extension, and the desktop app's Code tab.
-
-To remove everything:
-
-```sh
-./uninstall.sh      # or: make uninstall
-```
+- Setup ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `--no-check` skips that call.
+- Already-open Claude Code sessions pick up the hooks after `/hooks` is opened once, or after a restart. The hooks apply to every local Claude Code session: CLI, VS Code extension, and the desktop app's Code tab.
 
 ## Preview
 
@@ -56,6 +69,20 @@ make props                              # every name ITEM accepts
 
 `make preview` runs the repo build, not the installed copy.
 
+### Running the app directly
+
+The `claudio` app also takes these settings as arguments, which is handy with the Homebrew install (no repo needed). It shows a canned line, or your `TEXT`, and stays until clicked or for 5 minutes:
+
+```sh
+claudio ITEM=crown
+claudio ITEM=bell MODE=ask
+claudio TEXT="Hello there" ITEM=pizza
+claudio --props                         # every name ITEM accepts
+claudio --help
+```
+
+Run this way, Haiku is not involved: that part lives in the hook scripts.
+
 ## How it works
 
 | Hook | Script | Effect |
@@ -66,7 +93,7 @@ make props                              # every name ITEM accepts
 | `PostToolUse` | `dismiss.sh` | Slides the banner away once Claude resumes working |
 
 1. `notify.sh` starts the `claudio` app and, in parallel, `phrase.sh`.
-2. `phrase.sh` writes a random canned line right away, so the bubble is never empty.
+2. The app starts with a random canned line, so the bubble is never empty.
 3. It then asks Claude Haiku (`claude -p --model haiku`) to turn the first 1,500 characters of Claude's last message, or the notification text, into a short line. When one clearly fits, Haiku also picks a prop: trophy for passing tests, wrench for a fix, fire extinguisher for a failure, and so on. The app swaps the text and the prop in with a bounce when the answer arrives, usually 6 to 9 seconds later.
 4. `dismiss.sh` sends `SIGUSR1`, and the app slides and fades out.
 

@@ -13,14 +13,16 @@ The procedure is in `RELEASING.md` at the repo root. Read it first and follow it
 - **The user runs the outward steps themselves**: `git push`, `git tag` + push, creating the GitHub release, pushing the tap. Give the exact commands and wait. Run them only when the user asks you to in that turn.
 - When the user says they did a step, **verify it before moving on**:
   - tag: `git ls-remote --tags origin`
-  - release asset: download it and compare `shasum -a 256` with the local tarball
+  - formula checksum: `curl -sSLf <formula url> | shasum -a 256` matches the formula's `sha256`
   - tap: `git -C ../homebrew-tap log --oneline -1` and `git status -sb`
 
 ## Facts about this setup
 
 - The tap is checked out at `~/Desktop/repos/homebrew-tap` (remote `nappozord/homebrew-tap`), and Homebrew also has its own clone at `$(brew --repository nappozord/tap)`. Edit the first one, not Homebrew's clone.
-- `gh` is not installed. The user creates releases on github.com unless they install it.
-- Release asset name: `claudio-v<version>-macos-arm64.tar.gz`, containing only `claudio` at the top level (`tar -czf ... -C build claudio`).
-- Build from a clean, pushed tree (`git status -sb` shows `## main...origin/main` and nothing else), and never rebuild after hashing: the checksum must match the uploaded file.
-- `releases/latest` URLs cannot replace the version bump: `brew upgrade` compares `version`, and `sha256` pins one file.
-- The formula installs only the binary. The hooks run `~/.claude/claudio/` (put there by `./install.sh`), so a brew upgrade alone does not update what users see. A formula that builds from source and ships the scripts with a `claudio-setup` command was proposed but not adopted. Raise it again only if the user asks.
+- `gh` is not installed. Releases with notes are optional and done on github.com.
+- Since 1.2.0 the formula builds from the tag's source archive (`archive/refs/tags/v<version>.tar.gz`): no tarball is built or uploaded, and the version comes from the url. Up to 1.1.0 it installed a prebuilt arm64 binary attached to the release.
+- The checksum is of GitHub's archive, so it can only be computed after the tag is pushed (`curl -sSLf <url> | shasum -a 256`). Do not compute it from a local archive.
+- Tag only a clean, pushed `main` that passes `make build`: the tag is what Homebrew compiles.
+- `releases/latest` URLs cannot replace the bump: `brew upgrade` compares versions, and `sha256` pins one archive.
+- Homebrew sandboxes install and post_install (checked in Homebrew 7.0.7's `formula_installer.rb`), so a formula cannot write `~/.claude/settings.json`. Users run `claudio-setup` once. Its hooks point at `$(brew --prefix)/opt/claudio/libexec/scripts/`, so upgrades need no re-run.
+- `brew style Formula/claudio.rb` must report no offenses (it wants `depends_on "jq"` before `depends_on :macos`).

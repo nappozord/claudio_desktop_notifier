@@ -407,9 +407,12 @@ func pickItem() -> String {
     return pool.randomElement()!
 }
 
-// CLAUDIO_ITEM=<name> forces an object (or "crown") for previewing; an empty or unknown name is ignored
+// a forced object (or "crown") for previewing: the ITEM= argument, a prop name given as the mode,
+// or CLAUDIO_ITEM. An empty or unknown name is ignored (main.swift rejects a bad ITEM= argument).
 let allItems = Set(doneItems + askItems)
-let forced = ProcessInfo.processInfo.environment["CLAUDIO_ITEM"]
-    .flatMap { allItems.contains($0) || $0 == "crown" ? $0 : nil }
+func isProp(_ name: String) -> Bool { allItems.contains(name) || name == "crown" }
+let requestedItem = options["ITEM"] ?? (isProp(mode) ? mode : nil)
+    ?? ProcessInfo.processInfo.environment["CLAUDIO_ITEM"]
+let forced = requestedItem.flatMap { isProp($0) ? $0 : nil }
 let initialItem = forced.flatMap { allItems.contains($0) ? $0 : nil } ?? pickItem()
 let crowned = forced == "crown" || (forced == nil && Int.random(in: 0..<50) == 0)

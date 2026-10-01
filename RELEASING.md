@@ -4,78 +4,59 @@ How to publish a new version to the Homebrew tap, so `brew upgrade` picks it up.
 
 Two repos are involved:
 
-- **This repo** (`nappozord/claudio_desktop_notifier`): the code, the tag, and a GitHub release with the built app attached.
-- **The tap** (`nappozord/homebrew-tap`): `Formula/claudio.rb`, which says where to download the app (`url`), its checksum (`sha256`) and its `version`.
+- **This repo** (`nappozord/claudio_desktop_notifier`): the code and a `v<version>` tag.
+- **The tap** (`nappozord/homebrew-tap`): `Formula/claudio.rb`. Its `url` is GitHub's source archive for the tag, which Homebrew downloads and builds with `swiftc`, and `sha256` is the checksum of that archive.
 
-Both paths below assume the two repos sit side by side, as in `~/Desktop/repos/`.
+Nothing is built or uploaded by hand: the tag is the release. Both paths below assume the two repos sit side by side, as in `~/Desktop/repos/`.
 
 ## Why every release edits the formula
 
-- `brew upgrade` only upgrades when the formula's `version` is newer than the installed one.
-- `sha256` makes Homebrew check that the download is exactly the file you published. It is the checksum of that one file, so it changes with every build.
+- `brew upgrade` only upgrades when the formula's version is newer than the installed one. Homebrew reads the version from the `url` (`.../v1.2.0.tar.gz` → `1.2.0`).
+- `sha256` makes Homebrew check that the download is exactly that archive. Every tag has its own archive, so its own checksum.
 
-So a release always ends with a new `url`, `sha256` and `version` in the tap.
+So a release always ends with a new `url` and `sha256` in the tap.
 
 ## 1. Pick the version
 
-Use [semantic versioning](https://semver.org): `1.1.0` → `1.1.1` for fixes only, `1.2.0` for new features, `2.0.0` for changes that break existing installs.
+Use [semantic versioning](https://semver.org): `1.2.0` → `1.2.1` for fixes only, `1.3.0` for new features, `2.0.0` for changes that break existing installs.
 
 ```sh
-V=1.2.0
+V=1.3.0
 ```
 
 The commands below all use `$V`, so run them in the same terminal.
 
-## 2. Build and package
+## 2. Check the code
 
-The code must be committed and pushed first: the build has to match the commit you tag.
+Everything must be committed and pushed, because the tag is what Homebrew builds.
 
 ```sh
 cd ~/Desktop/repos/claudio_desktop_notifier
 git switch main && git pull
-git status                     # must say "nothing to commit, working tree clean"
-
-rm -f build/claudio && make build
-tar -czf build/claudio-v$V-macos-arm64.tar.gz -C build claudio
-SHA=$(shasum -a 256 build/claudio-v$V-macos-arm64.tar.gz | cut -d' ' -f1)
-echo $SHA
+git status -sb                 # "## main...origin/main" and nothing else
+make build                     # it must compile: Homebrew runs the same swiftc command
 ```
 
-`-C build` puts `claudio` at the top of the tarball, where the formula's `bin.install "claudio"` expects it.
-
-Do not rebuild after this point. A new build gives a different checksum, and the release and the formula must use the same file.
-
-## 3. Tag and create the release
+## 3. Tag
 
 ```sh
 git tag v$V
 git push origin v$V
 ```
 
-Then create the release from that tag and attach `build/claudio-v$V-macos-arm64.tar.gz`:
-
-- **On github.com:** Releases → Draft a new release → choose tag `v$V` → attach the file → Publish.
-- **With the GitHub CLI** (`brew install gh`, then `gh auth login` once):
-
-  ```sh
-  gh release create v$V build/claudio-v$V-macos-arm64.tar.gz --title v$V --notes "What changed"
-  ```
-
-Check that the uploaded file is the one you hashed. The two lines must match:
-
-```sh
-curl -sSLf https://github.com/nappozord/claudio_desktop_notifier/releases/download/v$V/claudio-v$V-macos-arm64.tar.gz | shasum -a 256
-echo $SHA
-```
+A GitHub release with notes is optional (Releases → Draft a new release → tag `v$V`). The formula uses the tag's source archive either way, so nothing needs to be attached.
 
 ## 4. Update the formula
 
 ```sh
+SHA=$(curl -sSLf https://github.com/nappozord/claudio_desktop_notifier/archive/refs/tags/v$V.tar.gz | shasum -a 256 | cut -d' ' -f1)
+echo $SHA
+
 cd ../homebrew-tap
 git pull
-perl -pi -e "s{/v[\d.]+/claudio-v[\d.]+-}{/v$V/claudio-v$V-}; s{sha256 \"\w+\"}{sha256 \"$SHA\"}; s{version \"[\d.]+\"}{version \"$V\"}" Formula/claudio.rb
-git diff                       # url (twice), sha256 and version, nothing else
-ruby -c Formula/claudio.rb     # "Syntax OK"
+perl -pi -e "s{/v[\d.]+\.tar\.gz}{/v$V.tar.gz}; s{sha256 \"\w+\"}{sha256 \"$SHA\"}" Formula/claudio.rb
+git diff                       # url and sha256, nothing else
+brew style Formula/claudio.rb  # "no offenses detected"
 git commit -am "claudio $V"
 git push
 ```
@@ -85,21 +66,25 @@ git push
 ```sh
 brew update
 brew upgrade nappozord/tap/claudio
-brew info nappozord/tap/claudio      # shows the new version
+brew test nappozord/tap/claudio
+claudio ITEM=crown                   # the banner shows; click it to close
 ```
+
+Users who already ran `claudio-setup` need nothing else: the hooks point at Homebrew's `opt/claudio` path, which always holds the installed version.
 
 ## When something goes wrong
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `SHA256 mismatch` on upgrade | The formula's `sha256` is not the checksum of the uploaded file, usually after a rebuild or a re-upload | Re-run the `curl ... \| shasum -a 256` check from step 3 and put that value in the formula |
-| `already installed` / no upgrade offered | Homebrew has the old formula, or `version` was not raised | `brew update`, then check `version` in `Formula/claudio.rb` |
-| `404` on download | The tag or the file name in `url` does not match the release | Compare the release's file name with the `url` line |
-| A wrong file was released | | Delete the release asset, upload the right one, then redo step 4 with its checksum. Never move a tag that people may have installed from: release a new patch version instead |
+| `SHA256 mismatch` on upgrade | The formula's `sha256` is not the checksum of the tag's archive, usually a typo or a hash from another tag | Re-run the `curl ... \| shasum -a 256` line from step 4 and put that value in the formula |
+| `already installed` / no upgrade offered | Homebrew has the old formula, or the `url` still names the old tag | `brew update`, then check the `url` line |
+| `404` on download | The tag was not pushed, or its name differs from the `url` | `git ls-remote --tags origin` and compare |
+| Build fails in `swiftc` | The tagged code does not compile, or the Xcode Command Line Tools are missing | Run `make build` on that commit; `xcode-select --install`. For the full log: `brew install --verbose --debug nappozord/tap/claudio` |
+| A broken version was tagged | | Fix it and release a new patch version. Never move a tag people may have installed from: its checksum would change |
 
-## Known limits of the current formula
+## How the formula installs Claudio
 
-- **The formula installs only the `claudio` app.** The hooks run the copy in `~/.claude/claudio/`, which `./install.sh` puts there. So a `brew upgrade` does not change what users see until they run `./install.sh` from the repo again.
-- **Apple Silicon only.** The tarball is built on an arm64 Mac, so it does not run on Intel Macs.
-
-Both would go away if the formula built Claudio from source and installed the scripts with a `claudio-setup` command. That change is not made yet.
+- It builds `src/*.swift` into `libexec/build/claudio` and links it as `claudio` on the `PATH`.
+- It installs the scripts, `install.sh` and `uninstall.sh` into `libexec`, and adds two commands: `claudio-setup` (runs `install.sh`) and `claudio-uninstall` (runs `uninstall.sh`).
+- Homebrew sandboxes formula installs, so it cannot edit `~/.claude/settings.json`. That is why users run `claudio-setup` once; the formula's caveats say so after `brew install`.
+- `install.sh` sees that there is no `src/` next to it and registers hooks that run the scripts from `$(brew --prefix)/opt/claudio/libexec/scripts/`, with no copy into `~/.claude/claudio/`. Running it from the repo instead builds and copies as before. Each mode removes the other's hooks, so switching is safe.

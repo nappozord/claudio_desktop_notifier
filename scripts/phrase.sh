@@ -1,8 +1,7 @@
 #!/bin/sh
 # phrase.sh <done|ask> <out-file>   (task text on stdin)
-# 1. Writes a random canned line to <out-file> immediately, so the bubble shows at once.
-# 2. Asks Haiku for a line that relates to the task and, if it answers in time,
-#    writes that to <out-file> too (the mascot swaps the text with a small bounce).
+# The app starts with a canned line of its own. This asks Haiku for a line that relates to the
+# task and, if it answers in time, writes it to <out-file> (the mascot swaps the text with a bounce).
 # phrase.sh --check   makes one test call and says whether Haiku captions work (install.sh runs it).
 DIR=$(cd "$(dirname "$0")" && pwd)
 . "$DIR/common.sh"
@@ -40,12 +39,6 @@ pick() {
   printf '%s\n' "$@" | awk 'BEGIN{srand()} {l[NR]=$0} END{print l[int(rand()*NR)+1]}'
 }
 write_out() { printf '%s\n' "$1" > "$out.tmp" && mv "$out.tmp" "$out"; }
-
-if [ "$mode" = "ask" ]; then
-  write_out "$(pick "Hey! I need your input!" "Psst, your turn!" "I'm stuck, help me out!" "Need a decision here!" "Over here, I have a question!")"
-else
-  write_out "$(pick "Bro I have finished!" "Check it out!" "All done, come look!" "Nailed it!" "Done and dusted!")"
-fi
 
 [ -z "$text" ] && { log "no message text: canned line only"; exit 0; }
 [ -n "$CLAUDE_BIN" ] || { log "no claude CLI found: canned line only"; exit 0; }

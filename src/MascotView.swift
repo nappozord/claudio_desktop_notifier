@@ -4,9 +4,8 @@ final class MascotView: NSView {
     let start = Date()
     var endAt = lifetime
 
-    // speech text arrives from phrase.sh: a canned line first, maybe a task-specific one later
-    let phraseFile: String? = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : nil
-    var phrase: String? = nil
+    // speech text: a canned line (or TEXT=) at once, maybe a task-specific one from phrase.sh later
+    var phrase: String? = initialPhrase
     var phraseAt = 0.0
     var swapped = false
     // held object: picked at spawn, may be replaced by a task-related one from phrase.sh

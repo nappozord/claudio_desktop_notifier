@@ -9,7 +9,7 @@ Claudio is a borderless AppKit window drawn entirely with Core Graphics, launche
 
 ## Layout of the repo
 
-- `src/Config.swift`: mode (`done` | `ask`), `lifetime` (300s), `slideTime` (0.45s), `uiScale` (0.85), the 440×150 `design` size, core colors.
+- `src/Config.swift`: argument parsing (positional `<done|ask> <phrase-file>` from the scripts, plus `MODE=` / `ITEM=` / `TEXT=` for running it by hand), the canned lines, mode (`done` | `ask`), `lifetime` (300s), `slideTime` (0.45s), `uiScale` (0.85), the 440×150 `design` size, core colors.
 - `src/main.swift`: window setup (top right, under the menu bar, `.popUpMenu` level, all Spaces), `SIGUSR1` = dismiss, 60fps timer.
 - `src/MascotView.swift`: `tick()` (slide, fade, phrase polling, exit), `drawBubble`, `drawMascot`.
 - `src/Props.swift`: `extension MascotView` with `drawCrown` / `drawItem`, the prop colors, the prop lists and `pickItem()`.
@@ -54,7 +54,7 @@ A quick way to show the user several variants in a row: write a caption to a fil
 
 ## Phrase pipeline (`scripts/phrase.sh`)
 
-1. It writes a random canned line to the phrase file immediately, so the bubble is never empty and appears with the banner.
+1. The app itself starts with a random canned line (`cannedDone` / `cannedAsk` in Config.swift, or `TEXT=`), so the bubble is never empty. `phrase.sh` only writes Haiku's answer.
 2. `find_claude` picks the CLI: `~/.claude/claudio/claude-path` (written by `install.sh` from the installing shell), then `PATH`, then `~/.claude/local/claude`, then Claude Desktop's bundled `~/Library/Application Support/Claude/claude-code/<ver>/claude.app/Contents/MacOS/claude` (verified: it can make the call with the shared login). It calls `claude -p --model haiku --no-session-persistence --setting-sources ""` with a 25s `perl alarm` timeout. A call takes about 6–9s; trimming flags does not make it faster. Output is line 1 = caption (≤8 words, cut at a word boundary to 70 characters with "…"), line 2 = prop name or `none`.
 3. It writes `caption\nitem: <prop>`. The app polls the file, deletes it on read, and bounces in the new text and prop.
 4. Before the late write, it checks that its banner still runs (`pgrep -f "/claudio (done|ask) $out"`); otherwise orphaned files pile up in `$TMPDIR`.
