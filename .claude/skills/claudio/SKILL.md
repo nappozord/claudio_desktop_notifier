@@ -33,7 +33,7 @@ A quick way to show the user several variants in a row: write a caption to a fil
 ## Coordinate systems (important when drawing)
 
 - **View**: 440×150 design units, scaled by `uiScale`. AppKit's origin is bottom-left (y up).
-- **Bubble**: `x = 158` to `design.width - 12`, `y = 16`, height 78, light gray (`white: 0.92`), no border, black regular-weight text, **left-aligned**, centered vertically. The font steps down from 18 to 11 until the text fits. The tail sits near the top-left corner (18–38 below the top edge). A decorative 26pt close circle sits centered on the top edge near the top-right corner. Any click anywhere dismisses the banner.
+- **Bubble**: `x = 158` to `design.width - 12`, `y = 16`, height 78, light gray (`white: 0.92`), no border, black regular-weight text, **left-aligned**, centered vertically. The font steps down from 18 to 11 until the text fits. The tail sits near the top-left corner (18–38 below the top edge). A 26pt close circle (`closeRect`, shared with the click check) sits centered on the top edge near the top-right corner. A click on it only dismisses; a click anywhere else runs `focus.sh` (path in `CLAUDIO_FOCUS`) and dismisses.
 - **Mascot**: drawn in its original 420-wide space (`cx = 210`), then translated to x=70, y=−8 and scaled 0.38. Body block `cx±100`, y 85–235. Legs at y 40. The right hand block is at `(cx+100, 165 − wave, 40×36)`; its center `(cx+120, 183 − wave)` is `hx, hy` in `drawItem`.
 - **Props**: draw upward from `hy`. Keep them within about x ≤ 440 and y ≤ hy+156 in mascot units, or they run into the bubble or off the top of the window. The hand is redrawn after the prop so the prop looks gripped. A crowned mascot draws no prop (`drawCrown` then `return`).
 
@@ -78,3 +78,12 @@ A quick way to show the user several variants in a row: write a caption to a fil
 - Bubble: light gray, no border, black regular-weight left-aligned text, tail at the top left, decorative X circle half over the top edge near the right.
 - Pizza is held by the crust with the tip up.
 - 5-minute lifetime. It is dismissed by a click, a prompt submit, or PostToolUse.
+- Click = jump to the finished session and close; click on the X = close only (2026-10-01).
+
+## Jump to session (`scripts/focus.sh`)
+
+- `notify.sh` exports `CLAUDIO_FOCUS_APP` (`$__CFBundleIdentifier`, which macOS sets for apps and the hooks inherit: `com.microsoft.VSCode` from the VS Code extension), `CLAUDIO_FOCUS_DIR` (payload `.cwd`) and `CLAUDIO_FOCUS_TTY` (the first ancestor process with a tty: the claude CLI; none in VS Code's panel).
+- VS Code: the user's windows are opened from `.code-workspace` files, so opening the session folder could open a new window. `code_window` reads `~/Library/Application Support/Code/User/globalStorage/storage.json` (`windowsState`) and opens the folder or workspace file whose folder is the deepest one containing the session; no match = just activate the app. Verified by the user on 2026-10-01: a real click on the banner brought the VS Code window back.
+- Terminal.app / iTerm2: AppleScript selects the tab by tty (macOS asks for Automation permission once). Not yet tested by the user; the iTerm2 script is untested (iTerm is not installed here).
+- Desktop: `claude://code/continue?session=last` (a link from Desktop's own quick actions). Whether `session=<id>` works is unknown.
+- Don't name a shell variable `path` when testing these functions from zsh: zsh ties it to `PATH`.

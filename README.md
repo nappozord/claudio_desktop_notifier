@@ -8,19 +8,35 @@ When Claude finishes a task or needs input, a banner slides in at the top right 
 
 - **Done** (Claude finished): the mascot jumps happily and holds something celebratory.
 - **Ask** (Claude needs input or permission): the mascot shakes and holds something attention-grabbing.
+- **Click to jump back**: clicking the mascot or the bubble brings the session that finished to the front, then closes the banner. Clicking the X only closes it. See [Jumping to the session](#jumping-to-the-session).
 - **Dismissed** when the user clicks it, sends a new prompt, or Claude resumes working; otherwise after 5 minutes.
 - **Quiet while waiting**: no banner when Claude only pauses for a timer or a background task.
 
 **Claude Code only.** Claudio is started by Claude Code hooks, so it works wherever Claude Code runs on your Mac: the `claude` CLI, the VS Code and JetBrains extensions, and the **Code** tab of Claude Desktop. It does not work with regular Claude chat (in Claude Desktop, on claude.ai or on the phone), which has no hooks. See [Claude Desktop](#claude-desktop) for VM and cloud sessions.
 
-## Requirements
+**Contents**
+
+- [Requirements](#requirements)
+- [Install](#install)
+  - [With Homebrew](#with-homebrew) · [From the repo](#from-the-repo) · [Both ways](#both-ways)
+- [Preview](#preview)
+  - [Running the app directly](#running-the-app-directly)
+- [How it works](#how-it-works)
+- [Jumping to the session](#jumping-to-the-session)
+- [Haiku captions](#haiku-captions)
+- [Troubleshooting](#troubleshooting)
+  - [Claude Desktop](#claude-desktop)
+- [Props](#props)
+- [Project layout](#project-layout)
+
+## Requirements <img src="assets/sections/requirements.png" height="44" alt="">
 
 - macOS
 - Xcode Command Line Tools (`swiftc`): `xcode-select --install` (Homebrew already needs them)
 - `jq`: built into macOS 15 and later; on older versions, `brew install jq`
 - Claude Code, logged in, for task-specific bubble lines (optional: without it, Claudio uses canned lines). See [Haiku captions](#haiku-captions) for where Claudio looks for it.
 
-## Install
+## Install <img src="assets/sections/install.png" height="44" alt="">
 
 ### With Homebrew
 
@@ -54,7 +70,7 @@ This builds the app, copies it to `~/.claude/claudio/`, and registers the same f
 - Setup ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `--no-check` skips that call.
 - Already-open Claude Code sessions pick up the hooks after `/hooks` is opened once, or after a restart. The hooks apply to every local Claude Code session: CLI, VS Code extension, and the desktop app's Code tab.
 
-## Preview
+## Preview <img src="assets/sections/preview.png" height="48" alt="">
 
 Two settings: **`ITEM` picks the prop**, and **`MODE` picks the mood** (`done` or `ask`).
 
@@ -88,7 +104,7 @@ claudio --help
 
 Run this way, Haiku is not involved: that part lives in the hook scripts.
 
-## How it works
+## How it works <img src="assets/sections/how-it-works.png" height="44" alt="">
 
 | Hook | Script | Effect |
 |---|---|---|
@@ -101,12 +117,26 @@ Run this way, Haiku is not involved: that part lives in the hook scripts.
 2. The app starts with a random canned line, so the bubble is never empty.
 3. It then asks Claude Haiku (`claude -p --model haiku`) to turn the first 1,500 characters of Claude's last message, or the notification text, into a short line. When one clearly fits, Haiku also picks a prop: trophy for passing tests, wrench for a fix, fire extinguisher for a failure, and so on. The app swaps the text and the prop in with a bounce when the answer arrives, usually 6 to 9 seconds later.
 4. `dismiss.sh` sends `SIGUSR1`, and the app slides and fades out.
+5. A click anywhere but the X runs `focus.sh`, which brings the session's app to the front (below).
 
 The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never triggers the hooks again.
 
 **Privacy and cost:** each banner sends Claude's last message (truncated) to Claude Haiku through the local Claude Code login. That is one small API call per banner.
 
-## Haiku captions
+## Jumping to the session <img src="assets/sections/jumping.png" height="44" alt="">
+
+`notify.sh` records where the session runs: the app it runs in (macOS passes each app's ID to the hooks it starts), the session's folder, and its terminal tab, if any. On a click, `focus.sh` uses them:
+
+| Session runs in | A click brings forward |
+|---|---|
+| VS Code (and Cursor, VSCodium, Windsurf) | The window that has the session's folder or workspace open. If none matches, just the app, so it never opens a new window |
+| `claude` in Terminal or iTerm2 | The tab running the session. macOS asks once to allow Claudio to control the terminal app |
+| `claude` in another terminal (Ghostty, Warp...) | The terminal app |
+| Claude Desktop's Code tab | Desktop's most recent Code session (`claude://code/continue?session=last`) |
+
+Started by hand (`claudio ITEM=crown`), the banner has no session, so a click only closes it.
+
+## Haiku captions <img src="assets/sections/haiku.png" height="44" alt="">
 
 `phrase.sh` uses the first `claude` it finds, in this order:
 
@@ -117,7 +147,7 @@ The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never tr
 
 The call uses that copy's login. It skips your settings files (`--setting-sources ""`), so an `apiKeyHelper` or provider set only in `settings.json` does not reach it; environment variables do.
 
-## Troubleshooting
+## Troubleshooting <img src="assets/sections/troubleshooting.png" height="43" alt="">
 
 Turn on the debug log, reproduce the problem, then read the log:
 
@@ -143,7 +173,7 @@ Claudio runs from the Claude Code hooks in `~/.claude/settings.json`, so it can 
 
 For a local Code session in Desktop, turn on the debug log and send one prompt: no log line means Desktop did not run the hooks for that session.
 
-## Props
+## Props <img src="assets/sections/props.png" height="44" alt="">
 
 | Mood | Random props (name for `ITEM`) |
 |---|---|
@@ -156,7 +186,7 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 - **Task-related only:** wrench and fire extinguisher (`extinguisher`); Haiku can also pick pencil for a done task.
 - **Rare:** about 1 banner in 50 wears a crown and holds nothing.
 
-## Project layout
+## Project layout <img src="assets/sections/layout.png" height="44" alt="">
 
 ```
 src/
@@ -166,7 +196,7 @@ src/
   Props.swift       held objects, colors, and how one is picked
   Drawing.swift     shape helpers
 scripts/
-  notify.sh  stop-hook.sh  dismiss.sh  phrase.sh
+  notify.sh  stop-hook.sh  dismiss.sh  phrase.sh  focus.sh
   common.sh  PATH, claude lookup, debug log (sourced by the others)
 install.sh  uninstall.sh  Makefile
 ```

@@ -12,7 +12,27 @@ final class MascotView: NSView {
     var item: String? = crowned ? nil : initialItem
     var itemAt = -10.0
 
-    override func mouseDown(with event: NSEvent) { dismiss() }
+    // bubble and its X, in design units (shared by drawing and the click check)
+    let bubbleRect = NSRect(x: 158, y: 16, width: design.width - 158 - 12, height: 78)
+    var closeRect: NSRect { NSRect(x: bubbleRect.maxX - 21, y: bubbleRect.maxY - 13, width: 26, height: 26) }
+
+    // a click on the X only closes the banner; anywhere else it also jumps to the session
+    override func mouseDown(with event: NSEvent) {
+        let p = convert(event.locationInWindow, from: nil)
+        let onClose = hypot(p.x / uiScale - closeRect.midX, p.y / uiScale - closeRect.midY) <= closeRect.width / 2 + 4
+        if !onClose { jumpToSession() }
+        dismiss()
+    }
+
+    // runs focus.sh (path in CLAUDIO_FOCUS, set by notify.sh), which reads the session details
+    // from the environment. Not set when the app is started by hand: then a click only closes it.
+    func jumpToSession() {
+        guard let script = ProcessInfo.processInfo.environment["CLAUDIO_FOCUS"], !script.isEmpty else { return }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/sh")
+        p.arguments = [script]
+        try? p.run()
+    }
 
     func dismiss() {
         let t = Date().timeIntervalSince(start)
@@ -62,8 +82,7 @@ final class MascotView: NSView {
         let pop = swapped ? 1 + 0.06 * sin(k * .pi)
                           : (k < 1 ? 1 + 0.12 * sin(k * .pi) - (1 - k) * (1 - k) : 1)
         // fixed size: from the mascot's feet up to a bit above the top of its head
-        let left: CGFloat = 158
-        let bubble = NSRect(x: left, y: 16, width: design.width - left - 12, height: 78)
+        let bubble = bubbleRect
         let textW = bubble.width - 28
         let para = NSMutableParagraphStyle(); para.alignment = .left
         // largest font size that fits the bubble
@@ -93,8 +112,8 @@ final class MascotView: NSView {
         tail.line(to: NSPoint(x: bubble.minX - 13, y: bubble.maxY - 28))
         tail.close()
         tail.fill()
-        // close button on the top-right corner (decorative: any click on the banner dismisses it)
-        let close = NSRect(x: bubble.maxX - 21, y: bubble.maxY - 13, width: 26, height: 26)
+        // close button on the top-right corner (see mouseDown)
+        let close = closeRect
         NSColor(white: 0.8, alpha: 1).setFill()
         NSBezierPath(ovalIn: close).fill()
         let cross = NSBezierPath()
