@@ -4,16 +4,18 @@ import Cocoa
 // Slides in from the right, slides out to the right. Stays 5 minutes unless dismissed
 // (click, or SIGUSR1 from scripts/dismiss.sh).
 let usage = """
-    Usage: claudio [done|ask] [MODE=done|ask] [ITEM=<prop>] [TEXT=<caption>]
-           claudio --props    list the props ITEM accepts
+    Usage: claudio [done|ask] [MODE=done|ask] [PROP=<prop>] [ACCESSORY=<accessory>] [TEXT=<caption>]
+           claudio --props          list the props PROP accepts
+           claudio --accessories    list the accessories ACCESSORY accepts
     The hook scripts run it as: claudio <done|ask> <phrase-file>
     """
 let args = Array(CommandLine.arguments.dropFirst())
-// MODE=, ITEM= and TEXT= arguments (key in any case), for running it by hand; the rest are positional
+// MODE=, PROP=, ACCESSORY= and TEXT= arguments (key in any case), for running it by hand; the
+// rest are positional
 func keyValue(_ a: String) -> (String, String)? {
     guard let eq = a.firstIndex(of: "=") else { return nil }
     let key = a[..<eq].uppercased()
-    return ["MODE", "ITEM", "TEXT"].contains(key) ? (key, String(a[a.index(after: eq)...])) : nil
+    return ["MODE", "PROP", "ACCESSORY", "TEXT"].contains(key) ? (key, String(a[a.index(after: eq)...])) : nil
 }
 let options = Dictionary(args.compactMap(keyValue), uniquingKeysWith: { $1 })
 let positional = args.filter { keyValue($0) == nil }

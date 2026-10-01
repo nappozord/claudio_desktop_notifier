@@ -226,8 +226,9 @@ extension MascotView {
             }
         }
 
-        // a crowned mascot keeps its hands free (crown sinks and droops with the rest of the head)
-        if crowned { drawCrown(cx); ctx.restoreGState(); return }
+        // a crowned mascot keeps its hands free — item is nil for it (MascotView.swift), so this
+        // guard is also what exits early for it; the crown itself already drew above with the
+        // other accessories (drawAccessory call near the eyes)
         guard let item = item else { ctx.restoreGState(); return }
         ctx.restoreGState()   // back to the un-sunk frame: the item gets its own position below
 

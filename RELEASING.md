@@ -67,7 +67,7 @@ git push
 brew update
 brew upgrade nappozord/tap/claudio
 brew test nappozord/tap/claudio
-claudio ITEM=crown                   # the banner shows; click it to close
+claudio ACCESSORY=crown              # the banner shows; click it to close
 ```
 
 Users who already ran `claudio-setup` need nothing else: the hooks point at Homebrew's `opt/claudio` path, which always holds the installed version.

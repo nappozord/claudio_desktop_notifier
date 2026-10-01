@@ -62,7 +62,7 @@ fi
 
 echo "Done. Open /hooks once (or start a new Claude Code session) to load the hooks."
 if [ -d "$REPO/src" ]; then
-  echo "Preview: make preview ITEM=pizza   (ITEM = prop, MODE=done|ask = mood; make props lists the props)"
+  echo "Preview: make preview PROP=pizza   (PROP = prop, ACCESSORY = accessory, MODE=done|ask = mood; make props/accessories list the names)"
 else
-  echo "Preview: claudio ITEM=pizza   (claudio --help for more)"
+  echo "Preview: claudio PROP=pizza   (claudio --help for more)"
 fi

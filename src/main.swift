@@ -1,18 +1,28 @@
 import Cocoa
 
-// `claudio --props` lists the names ITEM accepts (also used by `make preview`)
+// `claudio --props` / `--accessories` list the names PROP / ACCESSORY accept (also used by `make preview`)
 if mode == "--props" {
-    print((allItems.sorted() + ["crown"]).joined(separator: "\n"))
+    print(allItems.sorted().joined(separator: "\n"))
+    exit(0)
+}
+if mode == "--accessories" {
+    print(accessoryNames.sorted().joined(separator: "\n"))
     exit(0)
 }
 if mode == "--help" || mode == "-h" { print(usage); exit(0) }
-let propList = (allItems.sorted() + ["crown"]).joined(separator: " ")
-if let item = options["ITEM"], !isProp(item) {
-    fputs("Unknown ITEM '\(item)'. Props: \(propList)\n", stderr)
+let propList = allItems.sorted().joined(separator: " ")
+let accessoryList = accessoryNames.sorted().joined(separator: " ")
+if let prop = options["PROP"], !isProp(prop) {
+    fputs("Unknown PROP '\(prop)'. Props: \(propList)\n", stderr)
     exit(1)
 }
-if mode != "done" && mode != "ask" && !isProp(mode) {
-    fputs("Unknown mode '\(mode)': use done or ask (props go in ITEM=, e.g. claudio ITEM=pizza)\n\n\(usage)\n", stderr)
+if let acc = options["ACCESSORY"], !accessoryNames.contains(acc) {
+    fputs("Unknown ACCESSORY '\(acc)'. Accessories: \(accessoryList)\n", stderr)
+    exit(1)
+}
+if mode != "done" && mode != "ask" && !isProp(mode) && !accessoryNames.contains(mode) {
+    fputs("Unknown mode '\(mode)': use done or ask (props go in PROP=, accessories in ACCESSORY=, " +
+          "e.g. claudio PROP=pizza)\n\n\(usage)\n", stderr)
     exit(1)
 }
 

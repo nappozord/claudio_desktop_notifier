@@ -13,13 +13,15 @@ extension MascotView {
         disc(cx + 26, 252, 12, 12, NSColor(calibratedRed: 0.2, green: 0.7, blue: 0.35, alpha: 1))
     }
 
-    // rare accessory, worn alongside whatever's held — unlike the crown, which empties the hands.
-    // ey matches the eyes' own base y (headDroop included, blink/squash not), so it moves with the
-    // sunk/drooping head but doesn't squash when the eyes blink.
+    // rare accessory, worn alongside whatever's held — except crown, which empties the hands (see
+    // the item guard in Mascot.swift). ey matches the eyes' own base y (headDroop included,
+    // blink/squash not), so it moves with the sunk/drooping head but doesn't squash on a blink.
     func drawAccessory(_ cx: CGFloat, _ headDroop: CGFloat) {
         guard let accessory = accessory else { return }
         let ey: CGFloat = (isAsk ? 190 : 196) - headDroop
         switch accessory {
+        case "crown":
+            drawCrown(cx)
         case "sunglasses":
             let lensDark = NSColor(calibratedRed: 0.08, green: 0.1, blue: 0.16, alpha: 1)
             block(cx - 10, ey + 6, 20, 6, lensDark, r: 2)   // bridge
@@ -450,24 +452,26 @@ func pickItem() -> String {
     return pool.randomElement()!
 }
 
-// a forced object (or "crown") for previewing: the ITEM= argument, a prop name given as the mode,
-// or CLAUDIO_ITEM. An empty or unknown name is ignored (main.swift rejects a bad ITEM= argument).
+// a forced held prop for previewing: the PROP= argument, a prop name given as the mode, or
+// CLAUDIO_PROP. An empty or unknown name is ignored (main.swift rejects a bad PROP= argument).
 let allItems = Set(doneItems + askItems)
-func isProp(_ name: String) -> Bool { allItems.contains(name) || name == "crown" }
-let requestedItem = options["ITEM"] ?? (isProp(mode) ? mode : nil)
-    ?? ProcessInfo.processInfo.environment["CLAUDIO_ITEM"]
+func isProp(_ name: String) -> Bool { allItems.contains(name) }
+let requestedItem = options["PROP"] ?? (isProp(mode) ? mode : nil)
+    ?? ProcessInfo.processInfo.environment["CLAUDIO_PROP"]
 let forced = requestedItem.flatMap { isProp($0) ? $0 : nil }
 let initialItem = forced.flatMap { allItems.contains($0) ? $0 : nil } ?? pickItem()
-let crowned = forced == "crown" || (forced == nil && Int.random(in: 0..<50) == 0)
 
-// rare accessories, worn alongside whatever's held (unlike the crown, which empties the hands):
-// about as rare as the crown. CLAUDIO_ACCESSORY=<name> forces one for previewing — separate from
-// CLAUDIO_ITEM/ITEM=, since these aren't held props and don't belong in that validation.
-let accessoryNames = ["sunglasses", "partyhat", "nose"]
+// rare accessories, worn alongside whatever's held — crown included, which is why it's the one
+// that empties the hands (see the item guard in Mascot.swift) rather than a separate mechanism.
+// About a 1-in-50 chance total, split four ways. ACCESSORY=/CLAUDIO_ACCESSORY/a matching mode
+// name forces one for previewing — separate from PROP=/CLAUDIO_PROP, since these aren't held
+// props and don't belong in that validation.
+let accessoryNames = ["sunglasses", "partyhat", "nose", "crown"]
+let requestedAccessory = options["ACCESSORY"] ?? (accessoryNames.contains(mode) ? mode : nil)
+    ?? ProcessInfo.processInfo.environment["CLAUDIO_ACCESSORY"]
 let accessory: String? = {
-    if let envName = ProcessInfo.processInfo.environment["CLAUDIO_ACCESSORY"], accessoryNames.contains(envName) {
-        return envName
-    }
-    guard !crowned, forced == nil else { return nil }
+    if let ra = requestedAccessory, accessoryNames.contains(ra) { return ra }
+    guard forced == nil else { return nil }
     return Int.random(in: 0..<50) == 0 ? accessoryNames.randomElement() : nil
 }()
+let crowned = accessory == "crown"

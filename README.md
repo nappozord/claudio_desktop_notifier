@@ -74,21 +74,23 @@ This builds the app, copies it to `~/.claude/claudio/`, and registers the same f
 
 ## <a id="preview"></a>Preview <img src="assets/sections/preview.png" height="48" alt="">
 
-Two settings: **`ITEM` picks the prop**, and **`MODE` picks the mood** (`done` or `ask`).
+Three settings: **`PROP` picks the held prop**, **`ACCESSORY` picks a worn one** (crown included), and **`MODE` picks the mood** (`done` or `ask`).
 
 ```sh
-make preview ITEM=pizza                 # a specific prop
-make preview ITEM=crown                 # the rare crown
-make preview ITEM=bell MODE=ask         # a prop in the "ask" mood
-make preview                            # random prop, "done" mood
-make preview MODE=ask                   # random prop, "ask" mood
-make preview TEXT="All 24 tests pass"   # a fake message, sent through Haiku like a real one
-make props                              # every name ITEM accepts
+make preview PROP=pizza                     # a specific prop
+make preview ACCESSORY=crown                # the rare crown (no prop held)
+make preview ACCESSORY=sunglasses PROP=pizza  # worn alongside a held prop
+make preview PROP=bell MODE=ask             # a prop in the "ask" mood
+make preview                                # random prop, "done" mood
+make preview MODE=ask                       # random prop, "ask" mood
+make preview TEXT="All 24 tests pass"       # a fake message, sent through Haiku like a real one
+make props                                  # every name PROP accepts
+make accessories                            # every name ACCESSORY accepts
 ```
 
-- **`ITEM`** takes the internal names listed by `make props` (`icecream`, `popper`, `sign`...), not the names in the [Props](#props) table. `make preview` stops and lists the valid names if one is unknown.
-- **`MODE`** only changes how the mascot moves and which props it picks at random. A prop name given as `MODE` (`make preview MODE=crown`) is shown as if it were `ITEM`.
-- **`TEXT`**: without it, the bubble shows a canned line. With it, Haiku writes the line and may swap in a task-related prop a few seconds later, unless `ITEM` forces one.
+- **`PROP`** takes the internal names listed by `make props` (`icecream`, `popper`, `sign`...), not the names in the [Props](#props) table. **`ACCESSORY`** takes the names from `make accessories` (`crown`, `sunglasses`, `partyhat`, `nose`). `make preview` stops and lists the valid names if one is unknown.
+- **`MODE`** only changes how the mascot moves and which props it picks at random. A prop or accessory name given as `MODE` (`make preview MODE=crown`) is shown as if it were `PROP`/`ACCESSORY`.
+- **`TEXT`**: without it, the bubble shows a canned line. With it, Haiku writes the line and may swap in a task-related prop a few seconds later, unless `PROP` forces one.
 
 `make preview` runs the repo build, not the installed copy.
 
@@ -97,10 +99,11 @@ make props                              # every name ITEM accepts
 The `claudio` app also takes these settings as arguments, which is handy with the Homebrew install (no repo needed). It shows a canned line, or your `TEXT`, and stays until clicked or for 5 minutes:
 
 ```sh
-claudio ITEM=crown
-claudio ITEM=bell MODE=ask
-claudio TEXT="Hello there" ITEM=pizza
-claudio --props                         # every name ITEM accepts
+claudio ACCESSORY=crown
+claudio PROP=bell MODE=ask
+claudio TEXT="Hello there" PROP=pizza ACCESSORY=sunglasses
+claudio --props                         # every name PROP accepts
+claudio --accessories                   # every name ACCESSORY accepts
 claudio --help
 ```
 
@@ -136,7 +139,7 @@ The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never tr
 | `claude` in another terminal (Ghostty, Warp...) | The terminal app |
 | Claude Desktop's Code tab | Desktop's most recent Code session (`claude://code/continue?session=last`) |
 
-Started by hand (`claudio ITEM=crown`), the banner has no session, so a click only closes it.
+Started by hand (`claudio ACCESSORY=crown`), the banner has no session, so a click only closes it.
 
 ## <a id="haiku-captions"></a>Haiku captions <img src="assets/sections/haiku.png" height="44" alt="">
 
@@ -177,7 +180,7 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 
 ## <a id="props"></a>Props <img src="assets/sections/props.png" height="44" alt="">
 
-| Mood | Random props (name for `ITEM`) |
+| Mood | Random props (name for `PROP`) |
 |---|---|
 | Done | ice cream (`icecream`), magic wand (`wand`), balloon, trophy, party popper (`popper`), flag, coffee, pizza, donut, sword, potion, umbrella, fish |
 | Ask | megaphone, bell, flashlight, "?" sign (`sign`), pencil |
@@ -186,7 +189,8 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 - **Time of day:** a candle after 10pm, more coffee from 6 to 10am.
 - **Seasonal and time-of-day names:** `pumpkin`, `tree`, `flower`, `candle`.
 - **Task-related only:** wrench and fire extinguisher (`extinguisher`); Haiku can also pick pencil for a done task.
-- **Rare:** about 1 banner in 50 wears a crown and holds nothing.
+
+See [Animations](#animations) for the rare crown/sunglasses/party-hat/nose accessories.
 
 ## <a id="animations"></a>Animations
 
@@ -196,7 +200,7 @@ On top of the usual jump and arm-wave, things happen now and then, all random:
 - **Getting sleepy**: with nobody around for about a minute — no mouse movement, no keypress — it slumps down, its eyes close, the held prop drops to the ground, and a snot bubble and a sleepy "Zzz" show up. Moving the mouse near it again wakes it with a startled jump. Keypresses need the **Input Monitoring** permission (System Settings → Privacy & Security) the first time, or only mouse movement counts. This never happens in `ask` banners — they stay alert while waiting on you.
 - **Haiku-matched effects**: confetti bursts when the prop is a trophy or a party popper (a real success), and a small rain cloud hovers overhead when it's the fire extinguisher (something failed).
 - **In `ask` banners only**: it occasionally knocks on its own speech bubble, which jiggles, or scratches its head — both a "hey, look here" gesture.
-- **Rare accessories:** about 1 in 50 banners wears sunglasses, a party hat, or a big fake nose, alongside whatever it's holding (unlike the crown, which goes without a prop). `CLAUDIO_ACCESSORY=sunglasses|partyhat|nose` forces one for previewing.
+- **Rare accessories:** about 1 in 50 banners wears something — a crown (no prop held) or, worn alongside whatever's held, sunglasses, a party hat, or a big fake nose. `ACCESSORY=crown|sunglasses|partyhat|nose` (or `CLAUDIO_ACCESSORY=`) forces one for previewing.
 
 ## <a id="project-layout"></a>Project layout <img src="assets/sections/layout.png" height="44" alt="">
 
