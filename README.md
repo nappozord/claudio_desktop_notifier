@@ -193,7 +193,9 @@ For a local Code session in Desktop, turn on the debug log and send one prompt: 
 src/
   Config.swift      mode, timings, scale, core colors
   main.swift        window, dismiss signal, run loop
-  MascotView.swift  slide/fade, speech bubble, mascot body
+  MascotView.swift        view state, tick(), clicks, stacking
+  Bubble.swift  speech bubble
+  Mascot.swift  mascot body and its animations
   Props.swift       held objects, colors, and how one is picked
   Drawing.swift     shape helpers
 scripts/

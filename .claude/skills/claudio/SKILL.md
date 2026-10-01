@@ -11,7 +11,9 @@ Claudio is a borderless AppKit window drawn entirely with Core Graphics, launche
 
 - `src/Config.swift`: argument parsing (positional `<done|ask> <phrase-file>` from the scripts, plus `MODE=` / `ITEM=` / `TEXT=` for running it by hand), the canned lines, mode (`done` | `ask`), `lifetime` (300s), `slideTime` (0.45s), `uiScale` (0.85), the 440×150 `design` size, core colors.
 - `src/main.swift`: window setup (top right, under the menu bar, `.popUpMenu` level, all Spaces), `SIGUSR1` = dismiss, 60fps timer.
-- `src/MascotView.swift`: `tick()` (slide, fade, phrase polling, exit), `drawBubble`, `drawMascot`.
+- `src/MascotView.swift`: the class itself — stored state (phrase, held item, each animation's `...At` timestamp), `tick()` (slide, fade, phrase polling, exit), clicks, stacking. Split from drawing on 2026-10-01 because extensions can't add stored properties, only methods — so state had to stay here regardless.
+- `src/Bubble.swift`: `extension MascotView` with `drawBubble` only.
+- `src/Mascot.swift`: `extension MascotView` with `drawMascot` and all the mascot's animation math.
 - `src/Props.swift`: `extension MascotView` with `drawCrown` / `drawItem`, the prop colors, the prop lists and `pickItem()`.
 - `src/Drawing.swift`: `block`, `disc`, `poly`, `star`, `sparkle`, `smooth`.
 - `scripts/`: `notify.sh` (launcher), `stop-hook.sh`, `dismiss.sh`, `phrase.sh` (bubble text via Haiku), `common.sh` (sourced by all: extends `PATH`, `find_claude`, `log`).
@@ -34,8 +36,19 @@ A quick way to show the user several variants in a row: write a caption to a fil
 
 - **View**: 440×150 design units, scaled by `uiScale`. AppKit's origin is bottom-left (y up).
 - **Bubble**: `x = 158` to `design.width - 12`, `y = 16`, height 78, light gray (`white: 0.92`), no border, black regular-weight text, **left-aligned**, centered vertically. The font steps down from 18 to 11 until the text fits. The tail sits near the top-left corner (18–38 below the top edge). A 26pt close circle (`closeRect`, shared with the click check) sits centered on the top edge near the top-right corner. A click on it only dismisses; a click anywhere else runs `focus.sh` (path in `CLAUDIO_FOCUS`) and dismisses.
+- **Bubble scale (`pop` in `drawBubble`)**: an appear/swap pop (unchanged) times a small continuous swell, `1 + 0.025 * shout`, using the same `shout` formula as the mouth in `drawMascot` (not passed in; recomputed from `t`, since both are pure functions of it). Scales from `(bubble.minX, bubble.midY)`, i.e. the tail-side edge, so the tail stays put. Only the bubble shape, tail and close circle are inside that transform; the text is drawn after `ctx.restoreGState()`, at a fixed size and position, so words never stretch or jitter. User's call, 2026-10-01: "in time with the mouth".
 - **Mascot**: drawn in its original 420-wide space (`cx = 210`), then translated to x=70, y=−8 and scaled 0.38. Body block `cx±100`, y 85–235. Legs at y 40. The right hand block is at `(cx+100, 165 − wave, 40×36)`; its center `(cx+120, 183 − wave)` is `hx, hy` in `drawItem`.
 - **Props**: draw upward from `hy`. Keep them within about x ≤ 440 and y ≤ hy+156 in mascot units, or they run into the bubble or off the top of the window. The hand is redrawn after the prop so the prop looks gripped. A crowned mascot draws no prop (`drawCrown` then `return`).
+
+## Idle mascot animations (first: blink, 2026-10-01)
+
+Random one-off moves layered on top of the always-on jump/wave/mouth loop, so the mascot doesn't look dead still between those cycles. Each gets its own `var ...At` timestamp (initialized with `Double.random`) plus a fixed duration constant; `drawMascot` computes a 0–1 progress from `t - xAt` each frame (no stored "is it playing" flag) and reschedules `xAt = t + Double.random(in: ...)` for next time once `t - xAt` passes the duration. This keeps each animation a pure function of `t`, like `shout`, with no separate timer or state machine.
+
+- **Blink**: `blinkAt` (next blink time) and `blinkDuration` (0.12s) in MascotView.swift; the squash math itself is in Mascot.swift. `1 - 0.92 * sin(p * π)` where `p = (t - blinkAt) / blinkDuration`, applied to eye height only within `0...blinkDuration`, squashing from the vertical center (so eyes close toward their own middle, not toward the bottom). Reschedules 2–6s out. Verified with a standalone simulation: ~5 blinks per 20s, trough at 8% open, no stuck or repeated firings.
+- **Legs**: not a reschedule-based animation like the others, just a steady swing sharing the arms' `wave` value (half amplitude), outer two legs only (`i == 0` / `i == 3`), opposite phase; inner two stay planted. User-confirmed, 2026-10-01.
+- **Backflip**: `backflipAt` / `backflipDuration` (0.55s). Extra hop (`sin(p * π) * 70` added on top of the normal bounce) plus one full turn (`ctx.rotate(by: p * 2 * .pi)`) around pivot `(cx, 140)`. Reschedules 18–35s out. Done mood only (`!isAsk`); exposes `inFlip` so twirl can skip it. User-confirmed, 2026-10-01.
+- **Twirl**: `twirlAt` / `twirlDuration` (0.4s). Squashes horizontally only, `sx = 1 - 0.85 * sin(p * π)`, anchored at `x = cx` (no vertical change, no mirroring — avoids any need to flip face/prop drawing). Reschedules 15–28s out. Guarded by `!inFlip` so it never overlaps a backflip. Both moods. User-confirmed, 2026-10-01.
+- Still open, not built yet: prop toss, "getting sleepy" when the banner's been up a while unattended, plus further ideas from the 2026-10-01 brainstorm (dance, knock on the bubble, head scratch, excited on hover, task-matched effects like confetti/rain cloud/sweat drop, rare accessories like sunglasses or a party hat).
 
 ## Adding a prop
 
@@ -80,6 +93,10 @@ A quick way to show the user several variants in a row: write a caption to a fil
 - 5-minute lifetime. It is dismissed by a click, or by a prompt submit or PostToolUse **in the same session**: `notify.sh` puts `session_id` in the phrase-file name (`claudio.<sid>.XXXXXX`), and `dismiss.sh` signals only `pkill -f "/claudio (done|ask) .*/claudio\.<sid>\."`. Without a session id in its payload it signals any banner.
 - Click = jump to the finished session and close; click on the X = close only (2026-10-01).
 - Several sessions: banners stack one under the other, oldest on top, and the rest glide up when one closes (user's choice, 2026-10-01). `notify.sh` replaces only the same session's banner (`pkill -f` on `claudio.<sid>.`), or the previous session-less one (`claudio.XXXXXX$`) for previews.
+
+## File split (2026-10-01)
+
+Three files instead of one ~300-line one, matching the existing `Type+Concern.swift` idiom `Props.swift` already used (an `extension MascotView` per concern). Reasoned through with the user: Swift extensions share one namespace with no access-control benefit within a single target/`swiftc` compile, so splitting is for navigation only — a file per *concern* (bubble vs. mascot), not a file per animation or per prop, which would be real-Swift-project-sized machinery (a `Prop` protocol + registry, a struct per animation) for a project this size (~850 lines, no Xcode project, no package manager). Props.swift stays a single switch unless it gets unwieldy. No behavior changed; verified by rebuilding and relaunching the banner.
 
 ## Stacking (`updateSlot` in MascotView.swift)
 

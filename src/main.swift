@@ -38,5 +38,15 @@ let dismissSignal = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .mai
 dismissSignal.setEventHandler { view.dismiss() }
 dismissSignal.resume()
 
+// global key-press monitor: typing elsewhere also counts as activity for the sleepy animation
+// (mouse movement is read directly each frame in drawMascot and needs no such monitor). This
+// needs the Input Monitoring permission (System Settings → Privacy & Security → Input
+// Monitoring) — macOS prompts the first time; until granted, key presses go unseen and only
+// mouse movement keeps it from dozing off. Only the fact that a key was pressed is used here,
+// never which key — nothing is read from the event or stored.
+view.keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { _ in
+    view.noteActivity()
+}
+
 Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in view.tick() }
 app.run()

@@ -13,6 +13,49 @@ extension MascotView {
         disc(cx + 26, 252, 12, 12, NSColor(calibratedRed: 0.2, green: 0.7, blue: 0.35, alpha: 1))
     }
 
+    // rare accessory, worn alongside whatever's held — unlike the crown, which empties the hands.
+    // ey matches the eyes' own base y (headDroop included, blink/squash not), so it moves with the
+    // sunk/drooping head but doesn't squash when the eyes blink.
+    func drawAccessory(_ cx: CGFloat, _ headDroop: CGFloat) {
+        guard let accessory = accessory else { return }
+        let ey: CGFloat = (isAsk ? 190 : 196) - headDroop
+        switch accessory {
+        case "sunglasses":
+            let lensDark = NSColor(calibratedRed: 0.08, green: 0.1, blue: 0.16, alpha: 1)
+            block(cx - 10, ey + 6, 20, 6, lensDark, r: 2)   // bridge
+            for side: CGFloat in [-1, 1] {
+                let lx = cx + side * 44 - 17
+                block(lx, ey - 4, 34, 26, lensDark, r: 8)
+                NSColor(white: 1, alpha: 0.3).setFill()
+                poly([NSPoint(x: lx + 6, y: ey + 14), NSPoint(x: lx + 14, y: ey + 14),
+                      NSPoint(x: lx + 8, y: ey + 2)], NSColor(white: 1, alpha: 0.3))
+            }
+        case "partyhat":
+            poly([NSPoint(x: cx - 30, y: 235), NSPoint(x: cx + 30, y: 235), NSPoint(x: cx, y: 305)],
+                 NSColor(calibratedRed: 0.95, green: 0.3, blue: 0.4, alpha: 1))
+            for i: CGFloat in [0, 1, 2] {
+                let y0 = 243 + i * 18
+                poly([NSPoint(x: cx - 30 + i * 9, y: y0), NSPoint(x: cx + 30 - i * 9, y: y0),
+                      NSPoint(x: cx + 24 - i * 9, y: y0 + 9), NSPoint(x: cx - 24 + i * 9, y: y0 + 9)],
+                     NSColor(white: 0.98, alpha: 1))
+            }
+            disc(cx, 308, 14, 14, NSColor(white: 0.98, alpha: 1))
+        case "nose":
+            // big and tall, Groucho Marx-style — deliberately goofy, not a realistic nose. A
+            // lighter strip along the top and a darker, bigger one along the bottom stand in
+            // for shading, same highlight/shadow pairing the body itself uses.
+            let noseW: CGFloat = 34, noseH: CGFloat = 54
+            let noseY = ey - 50
+            block(cx - noseW / 2, noseY, noseW, noseH,
+                  NSColor(calibratedRed: 1, green: 0.55, blue: 0.7, alpha: 1), r: 4)
+            block(cx - noseW / 2, noseY, noseW, noseH * 0.32,
+                  NSColor(calibratedRed: 0.88, green: 0.38, blue: 0.56, alpha: 1), r: 3)
+            block(cx - noseW / 2, noseY + noseH * 0.8, noseW, noseH * 0.2,
+                  NSColor(calibratedRed: 1, green: 0.72, blue: 0.82, alpha: 1), r: 3)
+        default: break
+        }
+    }
+
     // hx, hy = centre of the right hand, in mascot coordinates
     func drawItem(_ item: String, _ t: Double, _ hx: CGFloat, _ hy: CGFloat, _ shout: CGFloat, _ ctx: CGContext) {
         switch item {
@@ -416,3 +459,15 @@ let requestedItem = options["ITEM"] ?? (isProp(mode) ? mode : nil)
 let forced = requestedItem.flatMap { isProp($0) ? $0 : nil }
 let initialItem = forced.flatMap { allItems.contains($0) ? $0 : nil } ?? pickItem()
 let crowned = forced == "crown" || (forced == nil && Int.random(in: 0..<50) == 0)
+
+// rare accessories, worn alongside whatever's held (unlike the crown, which empties the hands):
+// about as rare as the crown. CLAUDIO_ACCESSORY=<name> forces one for previewing — separate from
+// CLAUDIO_ITEM/ITEM=, since these aren't held props and don't belong in that validation.
+let accessoryNames = ["sunglasses", "partyhat", "nose"]
+let accessory: String? = {
+    if let envName = ProcessInfo.processInfo.environment["CLAUDIO_ACCESSORY"], accessoryNames.contains(envName) {
+        return envName
+    }
+    guard !crowned, forced == nil else { return nil }
+    return Int.random(in: 0..<50) == 0 ? accessoryNames.randomElement() : nil
+}()
