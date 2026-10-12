@@ -70,7 +70,7 @@ This builds the app, copies it to `~/.claude/claudio/`, and registers the same f
 
 ### Both ways
 
-- Setup ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `--no-check` skips that call.
+- Setup ends with one test call to Haiku and prints `Haiku captions: on (...)` or `off: <reason>`. `--no-check` skips that call. `--no-haiku` turns captions off for good (no tokens used, see [Settings](#settings)); `--haiku` turns them back on.
 - Already-open Claude Code sessions pick up the hooks after `/hooks` is opened once, or after a restart. The hooks apply to every local Claude Code session: CLI, VS Code extension, and the desktop app's Code tab.
 
 ## <a id="preview"></a>Preview <img src="assets/sections/preview.png" height="48" alt="">
@@ -131,7 +131,7 @@ Run this way, Haiku is not involved: that part lives in the hook scripts.
 
 The Haiku call runs with `CLAUDIO_NESTED=1` and no user settings, so it never triggers the hooks again.
 
-**Privacy and cost:** each banner sends Claude's last message (truncated) to Claude Haiku through the local Claude Code login. That is one small API call per banner.
+**Privacy and cost:** each banner sends Claude's last message (truncated) to Claude Haiku through the local Claude Code login. That is one small API call per banner. To use no tokens at all, turn captions off: see [Settings](#settings).
 
 ## <a id="jumping-to-the-session"></a>Jumping to the session <img src="assets/sections/jumping.png" height="44" alt="">
 
@@ -156,6 +156,19 @@ Started by hand (`claudio ACCESSORY=crown`), the banner has no session, so a cli
 4. The copy bundled with Claude Desktop (`~/Library/Application Support/Claude/claude-code/<version>/claude.app`), for people who only use Desktop.
 
 The call uses that copy's login. It skips your settings files (`--setting-sources ""`), so an `apiKeyHelper` or provider set only in `settings.json` does not reach it; environment variables do.
+
+## <a id="settings"></a>Settings
+
+Claudio reads `~/.claude/claudio/config`, plain `key=value` lines (`#` starts a comment). It survives re-running setup and `brew upgrade`. An environment variable `CLAUDIO_<KEY>` overrides the file.
+
+| Key | Values | Effect |
+|---|---|---|
+| `haiku` | `on` (default) / `off` | `off` makes Claudio notify only: a canned line and a random prop, no call to Claude, so **no tokens used**. Setup skips its test call too |
+
+```sh
+./install.sh --no-haiku      # or: claudio-setup --no-haiku   (writes haiku=off to the config file)
+./install.sh --haiku         # back on
+```
 
 ## <a id="troubleshooting"></a>Troubleshooting <img src="assets/sections/troubleshooting.png" height="43" alt="">
 

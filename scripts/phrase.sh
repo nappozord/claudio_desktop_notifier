@@ -6,6 +6,12 @@
 DIR=$(cd "$(dirname "$0")" && pwd)
 . "$DIR/common.sh"
 CLAUDE_BIN=$(find_claude)
+# haiku=off in ~/.claude/claudio/config (or CLAUDIO_HAIKU=off): no call at all, so no tokens are used
+if ! haiku_on; then
+  [ "$1" = "--check" ] && echo "off (turned off in $CLAUDIO_HOME/config)"
+  log "haiku off: canned line only"
+  exit 0
+fi
 
 # haiku <system prompt> <prompt>: one `claude -p` call on Haiku, cut off after 25s.
 # The answer goes to stdout; the CLI's error output is kept in $errf.

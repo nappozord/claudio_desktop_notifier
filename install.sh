@@ -6,6 +6,17 @@
 # ~/.claude/claudio/ also holds the debug flag, the log and claude-path in both cases.
 # ./install.sh --no-check   skips the Haiku test call at the end (quicker while iterating)
 set -e
+# ./install.sh --no-haiku   turns captions off for good (writes haiku=off to ~/.claude/claudio/config): no tokens used
+# ./install.sh --haiku      turns them back on
+check=1; haiku_set=""
+for arg in "$@"; do
+  case "$arg" in
+    --no-check) check=0 ;;
+    --no-haiku) haiku_set=off ;;
+    --haiku) haiku_set=on ;;
+    *) echo "Unknown option $arg (--no-check, --no-haiku, --haiku)"; exit 1 ;;
+  esac
+done
 REPO=$(cd "$(dirname "$0")" && pwd)
 DEST="$HOME/.claude/claudio"
 SETTINGS="$HOME/.claude/settings.json"
@@ -37,6 +48,16 @@ rm -f "$DEST/claude-path"
 claude_bin=$(find_claude || true)
 [ -n "$claude_bin" ] && printf '%s\n' "$claude_bin" > "$DEST/claude-path"
 
+if [ -n "$haiku_set" ]; then
+  # update the haiku= line in place (or append it); other settings stay
+  touch "$DEST/config"
+  tmp=$(mktemp)
+  grep -v '^[[:space:]]*haiku[[:space:]]*=' "$DEST/config" > "$tmp" || true
+  echo "haiku=$haiku_set" >> "$tmp"
+  mv "$tmp" "$DEST/config"
+  echo "Haiku captions set to $haiku_set in $DEST/config"
+fi
+
 echo "Registering hooks in $SETTINGS"
 [ -f "$SETTINGS" ] || echo '{}' > "$SETTINGS"
 cp "$SETTINGS" "$SETTINGS.claudio-backup"
@@ -55,7 +76,9 @@ jq --arg d "$HOOKS" '
 ' "$SETTINGS" > "$tmp"
 mv "$tmp" "$SETTINGS"
 
-if [ "$1" != "--no-check" ]; then
+if ! haiku_on; then
+  echo "Haiku captions: off (config): canned lines only, no tokens used"
+elif [ "$check" = 1 ]; then
   printf 'Haiku captions (one test call, about 10s): '
   "$HOOKS/phrase.sh" --check || echo "  The banner still works, with canned lines. Details: README, \"Haiku captions\"."
 fi

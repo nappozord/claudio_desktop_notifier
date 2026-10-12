@@ -18,6 +18,20 @@ log() {
   printf '%s [%s] %s\n' "$(date '+%F %T')" "$(basename "$0")" "$*" >> "$CLAUDIO_LOG"
 }
 
+# setting <key> <default>: a setting's value. CLAUDIO_<KEY> in the environment wins, then the last
+# `key=value` line in ~/.claude/claudio/config (read as text, never sourced), then the default.
+setting() {
+  _var="CLAUDIO_$(printf '%s' "$1" | tr 'a-z' 'A-Z')"
+  _val=$(eval "printf '%s' \"\${$_var}\"")
+  [ -z "$_val" ] && _val=$(sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" "$CLAUDIO_HOME/config" 2>/dev/null \
+    | tail -n 1 | sed 's/[[:space:]]*$//')
+  printf '%s\n' "${_val:-$2}"
+}
+# haiku_on: true unless captions are turned off (haiku=off in the config file, or CLAUDIO_HAIKU=off)
+haiku_on() {
+  case "$(setting haiku on | tr 'A-Z' 'a-z')" in off|false|0|no) return 1 ;; *) return 0 ;; esac
+}
+
 # find_claude: prints the first usable claude CLI. In order: the path install.sh recorded,
 # PATH, the old npm-local install, and the copy bundled with Claude Desktop (newest version).
 find_claude() {

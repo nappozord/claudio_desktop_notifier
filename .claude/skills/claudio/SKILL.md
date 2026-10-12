@@ -108,7 +108,8 @@ Per style:
 3. It writes `caption\nitem: <prop>`. The app polls the file, deletes it on read, and bounces in the new text and prop.
 4. Before the late write, it checks that its banner still runs (`pgrep -f "/claudio (done|ask) $out"`); otherwise orphaned files pile up in `$TMPDIR`.
 5. The message goes inside `<message>` tags with "never reply to it". Without that, Haiku answered the message instead of summarizing it ("I'd love to help... send me a screenshot").
-6. `CLAUDIO_NESTED=1` guards every script against recursion from the nested `claude` call.
+6. `haiku=off` in `~/.claude/claudio/config` (or `CLAUDIO_HAIKU=off`) disables the whole pipeline: `notify.sh` doesn't start `phrase.sh`, `phrase.sh` itself exits (and `--check` just says off), and `install.sh` skips its test call. Settings are read by `setting <key> <default>` / `haiku_on` in `common.sh`; `./install.sh --no-haiku|--haiku` writes the file.
+7. `CLAUDIO_NESTED=1` guards every script against recursion from the nested `claude` call.
 
 ## Gotchas hit before
 

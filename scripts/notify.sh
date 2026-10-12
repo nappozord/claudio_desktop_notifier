@@ -44,4 +44,8 @@ f="$(mktemp -u "${TMPDIR:-/tmp}/claudio.${sid:+$sid.}XXXXXX")"
 nohup "$BIN" "$mode" "$f" >/dev/null 2>&1 &
 log "banner started (pid $!)"
 [ -n "$CLAUDIO_LOG" ] && (sleep 1; pgrep -x claudio >/dev/null || log "banner exited within 1s") &
-printf '%s' "$text" | nohup "$DIR/phrase.sh" "$mode" "$f" >/dev/null 2>&1 &
+if haiku_on; then
+  printf '%s' "$text" | nohup "$DIR/phrase.sh" "$mode" "$f" >/dev/null 2>&1 &
+else
+  log "haiku off (config): canned line only"
+fi
