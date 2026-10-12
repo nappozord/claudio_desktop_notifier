@@ -7,6 +7,13 @@ description: Publishing a new Claudio version to Homebrew (nappozord/tap/claudio
 
 The procedure is in `RELEASING.md` at the repo root. Read it first and follow its steps and commands; this file only adds how to run them with this user.
 
+**Tag, GitHub release, and the formula bump (steps 1-4) are automated** by
+`.github/workflows/release.yml`, triggered by bumping `VERSION` on `main`. So
+"release X" now usually just means: edit `VERSION` to `X`, commit, push `main`
+(still an outward step - the user does it, same as below), then verify the
+workflow run instead of running steps 2-4 by hand. Only fall back to doing
+RELEASING.md's commands by hand if the workflow is broken or the user asks to.
+
 ## Working with the user
 
 - **One step at a time.** Do one step of `RELEASING.md`, report what it produced (file, hash, diff), name the next step, and stop. Do not chain steps.

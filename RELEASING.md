@@ -2,6 +2,13 @@
 
 How to publish a new version to the Homebrew tap, so `brew upgrade` picks it up.
 
+**Steps 1-4 below are automated**: bump the version in `VERSION` on `main` (that's
+step 1) and `.github/workflows/release.yml` does the rest of steps 2-4 - tags,
+creates the GitHub release, and updates `homebrew-tap`'s `url`/`sha256`. This doc's
+commands for those steps are the reference for what the workflow does, and the
+fallback if it's broken or you need to release by hand. Steps 5-6 (checking the
+upgrade, telling users) are unaffected and still manual.
+
 Two repos are involved:
 
 - **This repo** (`nappozord/claudio_desktop_notifier`): the code and a `v<version>` tag.

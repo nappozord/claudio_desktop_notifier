@@ -1,0 +1,72 @@
+name: Release
+
+# Mirrors RELEASING.md steps 1-4: bumping VERSION on main tags the release, creates
+# the GitHub release, and bumps url/sha256 in the homebrew-tap formula. Steps 5-6
+# (checking the upgrade, telling users) stay manual - nothing here touches users.
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag doesn't already exist
+        id: checktag
+        run: |
+          if git ls-remote --tags origin "refs/tags/v${{ steps.version.outputs.version }}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (same command Homebrew runs)
+        if: steps.checktag.outputs.exists != 'true'
+        run: make build
+
+      - name: Tag and push
+        if: steps.checktag.outputs.exists != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub release
+        if: steps.checktag.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.version.outputs.version }}" --title "v${{ steps.version.outputs.version }}" --generate-notes
+
+      - name: Checksum the tag's source archive
+        if: steps.checktag.outputs.exists != 'true'
+        id: sha
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          SHA=$(curl -sSLf "https://github.com/${{ github.repository }}/archive/refs/tags/v$V.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Update homebrew-tap formula
+        if: steps.checktag.outputs.exists != 'true'
+        env:
+          V: ${{ steps.version.outputs.version }}
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          git clone "https://x-access-token:${{ secrets.TAP_REPO_TOKEN }}@github.com/nappozord/homebrew-tap.git" tap
+          cd tap
+          perl -pi -e "s{/v[\d.]+\.tar\.gz}{/v$V.tar.gz}; s{sha256 \"\w+\"}{sha256 \"$SHA\"}" Formula/claudio.rb
+          brew style Formula/claudio.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "claudio $V"
+          git push
